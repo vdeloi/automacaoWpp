@@ -1,90 +1,125 @@
-import sqlite3
+# app/tenants/clinica/repository.py
 import os
+import re
+import sqlite3
+import threading
+import unicodedata
 from abc import ABC, abstractmethod
 from typing import List
 
-# ---------------------------------------------------------
-# 1. CONTRATO ABSTRATO (Interface)
-# ---------------------------------------------------------
+
 class BaseClinicaRepository(ABC):
-    """
-    Interface abstrata exclusiva para persistência de dados da Clínica.
-    Define o que o banco de dados da clínica precisa fazer, independente 
-    de ser SQLite, PostgreSQL, etc.
-    """
+    """Interface abstrata exclusiva para persistência de dados da Clínica."""
 
     @abstractmethod
     def check_availability(self, date: str, doctor: str) -> List[str]:
-        """Verifica os horários já ocupados para uma data e médico específicos."""
         pass
 
     @abstractmethod
     def book_appointment(self, client_name: str, date: str, time: str, doctor: str) -> bool:
-        """Agenda uma consulta médica. Retorna True se sucesso, False se ocupado."""
         pass
 
-# ---------------------------------------------------------
-# 2. IMPLEMENTAÇÃO CONCRETA (SQLite)
-# ---------------------------------------------------------
+
 class SQLiteClinicaRepository(BaseClinicaRepository):
     """
-    Implementação em SQLite do repositório da Clínica.
-    Todo o código de acesso a dados deste tenant fica isolado aqui.
+    Implementação concorrente em SQLite do repositório da Clínica.
+    Protegida contra condições de corrida (horário duplo) via WAL + UNIQUE + Normalização.
     """
 
     def __init__(self, db_path: str = "data/tenants/clinica_01/clinica.db"):
         self.db_path = db_path
-        # Cria a pasta do banco da clínica se não existir
+        self._write_lock = threading.RLock()
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self._create_table()
 
+    @staticmethod
+    def _normalize_doctor(doctor: str) -> str:
+        """
+        Normaliza o nome do médico (sem acentos, minúsculo e sem prefixo dr/dra)
+        para evitar que duas threads agendem o mesmo médico com grafias levemente diferentes.
+        """
+        texto = unicodedata.normalize("NFKD", doctor).encode("ASCII", "ignore").decode("utf-8")
+        texto = texto.lower().strip()
+        texto = re.sub(r"^(dr\.?|dra\.?|doutor|doutora)\s+", "", texto)
+        return re.sub(r"\s+", " ", texto)
+
     def _get_connection(self) -> sqlite3.Connection:
-        """Abre a conexão isolada com o banco da clínica."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(
+            self.db_path,
+            timeout=30.0,
+            check_same_thread=False,
+            isolation_level=None,  # Controle manual de transação para BEGIN IMMEDIATE
+        )
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA busy_timeout=30000;")
         return conn
 
     def _create_table(self) -> None:
-        """Cria a tabela de agendamentos com proteção contra horário duplo."""
-        with self._get_connection() as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS appointments (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    client_name TEXT NOT NULL,
-                    appointment_date TEXT NOT NULL,
-                    appointment_time TEXT NOT NULL,
-                    doctor TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(appointment_date, appointment_time, doctor)
-                );
-            """)
+        with self._write_lock:
+            conn = self._get_connection()
+            try:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS appointments (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        client_name TEXT NOT NULL,
+                        appointment_date TEXT NOT NULL,
+                        appointment_time TEXT NOT NULL,
+                        doctor TEXT NOT NULL,
+                        doctor_normalized TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(appointment_date, appointment_time, doctor_normalized)
+                    );
+                """)
+            finally:
+                conn.close()
 
     def check_availability(self, date: str, doctor: str) -> List[str]:
-        """Busca no banco os horários já preenchidos."""
-        with self._get_connection() as conn:
+        """Busca no banco os horários já preenchidos de forma concorrente."""
+        doc_norm = self._normalize_doctor(doctor)
+        conn = self._get_connection()
+        try:
             cursor = conn.execute(
                 """
                 SELECT appointment_time FROM appointments 
-                WHERE appointment_date = ? AND doctor = ? 
+                WHERE appointment_date = ? AND doctor_normalized = ? 
                 ORDER BY appointment_time;
                 """,
-                (date, doctor)
+                (date.strip(), doc_norm),
             )
             rows = cursor.fetchall()
             return [row["appointment_time"] for row in rows]
+        finally:
+            conn.close()
 
     def book_appointment(self, client_name: str, date: str, time: str, doctor: str) -> bool:
-        """Tenta inserir o agendamento. Retorna False se houver conflito de horário."""
-        try:
-            with self._get_connection() as conn:
+        """
+        Tenta inserir o agendamento com trava transacional imediata (BEGIN IMMEDIATE).
+        Se dois pacientes tentarem reservar o mesmo horário juntos, apenas o primeiro
+        terá sucesso e o segundo receberá False instantaneamente.
+        """
+        doc_norm = self._normalize_doctor(doctor)
+        with self._write_lock:
+            conn = self._get_connection()
+            try:
+                conn.execute("BEGIN IMMEDIATE;")
                 conn.execute(
                     """
-                    INSERT INTO appointments (client_name, appointment_date, appointment_time, doctor)
-                    VALUES (?, ?, ?, ?);
+                    INSERT INTO appointments (
+                        client_name, appointment_date, appointment_time, doctor, doctor_normalized
+                    )
+                    VALUES (?, ?, ?, ?, ?);
                     """,
-                    (client_name, date, time, doctor)
+                    (client_name.strip(), date.strip(), time.strip(), doctor.strip(), doc_norm),
                 )
-            return True
-        except sqlite3.IntegrityError:
-            # Captura a falha do banco se o UNIQUE for violado (horário já ocupado)
-            return False
+                conn.execute("COMMIT;")
+                return True
+            except sqlite3.IntegrityError:
+                conn.execute("ROLLBACK;")
+                return False
+            except Exception:
+                conn.execute("ROLLBACK;")
+                raise
+            finally:
+                conn.close()

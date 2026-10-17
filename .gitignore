@@ -23,6 +23,7 @@ venv.bak/
 .env.*.local
 *.pem
 *.key
+token_git_wpp_project.txt
 
 # -------------------------------------------------------
 # 3. CACHE E ARQUIVOS COMPILADOS DO PYTHON
@@ -98,3 +99,6 @@ htmlcov/
 # data/             # Descomente caso não queira subir arquivos de dados locais
 .vscode/
 .idea/
+
+# PDF's
+*.pdf

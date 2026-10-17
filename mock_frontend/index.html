@@ -2,7 +2,6 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <!-- Viewport configurado para respeitar áreas seguras e redimensionamento de teclado -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>WhatsApp Web Mock - Multi-Tenant</title>
     <style>
@@ -13,81 +12,246 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        /* Ocupa a altura real dinâmica da tela do celular */
         body {
             background-color: #d1d7db;
+            background-image: linear-gradient(to bottom, #00a884 0px, #00a884 127px, #d1d7db 127px, #d1d7db 100%);
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;  /* Fallback para navegadores antigos */
-            height: 100dvh; /* Altura dinâmica real em smartphones modernos */
+            height: 100vh;
+            height: 100dvh;
             overflow: hidden;
         }
 
-        /* Container Principal */
+        /* =========================================================
+           1. TELA DE BLOQUEIO OBRIGATÓRIO (11 DÍGITOS)
+           ========================================================= */
+        .auth-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(17, 27, 33, 0.85);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .auth-overlay.hidden {
+            display: none !important;
+        }
+
+        .auth-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 12px;
+            padding: 32px 28px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+            text-align: center;
+        }
+
+        .auth-logo {
+            width: 64px;
+            height: 64px;
+            background-color: #25d366;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 16px;
+        }
+
+        .auth-card h1 {
+            font-size: 1.35rem;
+            color: #111b21;
+            margin-bottom: 8px;
+        }
+
+        .auth-card p {
+            font-size: 0.9rem;
+            color: #667781;
+            margin-bottom: 24px;
+            line-height: 1.4;
+        }
+
+        .phone-input-wrapper {
+            text-align: left;
+            margin-bottom: 14px;
+        }
+
+        .phone-input-wrapper label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #3b4a54;
+            margin-bottom: 6px;
+        }
+
+        .phone-input-field {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 1.15rem;
+            letter-spacing: 1.5px;
+            border: 2px solid #d1d7db;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s;
+            text-align: center;
+            font-weight: 600;
+            color: #111b21;
+        }
+
+        .phone-input-field:focus {
+            border-color: #00a884;
+        }
+
+        .phone-input-field.invalid {
+            border-color: #ea0038;
+        }
+
+        .phone-counter {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            color: #667781;
+            margin-top: 6px;
+        }
+
+        .phone-counter.valid {
+            color: #00a884;
+            font-weight: 600;
+        }
+
+        .phone-error {
+            color: #ea0038;
+            font-size: 0.82rem;
+            margin-bottom: 14px;
+            min-height: 20px;
+            font-weight: 500;
+        }
+
+        .btn-start-chat {
+            width: 100%;
+            background-color: #00a884;
+            color: #ffffff;
+            border: none;
+            padding: 13px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, opacity 0.2s;
+        }
+
+        .btn-start-chat.disabled-look {
+            background-color: #94a3b8;
+        }
+
+        .btn-start-chat:hover {
+            background-color: #008f6f;
+        }
+
+        /* =========================================================
+           2. CONTAINER PRINCIPAL DO WHATSAPP WEB
+           ========================================================= */
         .app-container {
             display: flex;
             width: 100%;
             height: 100%;
             max-width: 1600px;
             background-color: #ffffff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 6px 18px rgba(11, 20, 26, 0.15);
+            overflow: hidden;
         }
 
-        /* Barra Lateral (Lista de Estabelecimentos) */
+        @media (min-width: 1441px) {
+            .app-container {
+                height: calc(100dvh - 38px);
+                width: calc(100vw - 38px);
+            }
+        }
+
+        /* Barra Lateral */
         .sidebar {
-            width: 380px;
+            width: 390px;
             border-right: 1px solid #e9edef;
             display: flex;
             flex-direction: column;
             background-color: #ffffff;
-            transition: all 0.2s ease-in-out;
             height: 100%;
+            flex-shrink: 0;
         }
 
         .sidebar-header {
             background-color: #f0f2f5;
-            padding: 12px 16px;
+            padding: 10px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #d1d7db;
-            /* Proteção contra entalhe superior em celulares */
-            padding-top: calc(12px + env(safe-area-inset-top, 0px));
+            border-bottom: 1px solid #e9edef;
+            padding-top: calc(10px + env(safe-area-inset-top, 0px));
+            height: 60px;
         }
 
-        .sidebar-header h2 {
-            font-size: 1.1rem;
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #dfe5e7;
+            color: #54656f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-details span.label {
+            font-size: 0.7rem;
+            color: #667781;
+        }
+
+        .user-details span.number {
+            font-size: 0.9rem;
+            font-weight: 600;
             color: #111b21;
         }
 
-        .user-phone-box {
-            padding: 10px 16px;
-            background-color: #f7f8fa;
-            border-bottom: 1px solid #e9edef;
-        }
-
-        .user-phone-box label {
-            font-size: 0.75rem;
-            color: #667781;
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .user-phone-box input {
-            width: 100%;
-            padding: 8px 10px;
-            border: 1px solid #ced0d1;
+        .btn-change-phone {
+            background-color: #ffffff;
+            border: 1px solid #d1d7db;
+            color: #008069;
+            padding: 6px 10px;
             border-radius: 6px;
-            font-size: 0.9rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-change-phone:hover {
+            background-color: #f0f2f5;
         }
 
         .tenant-list {
             list-style: none;
             overflow-y: auto;
             flex: 1;
-            /* Proteção contra a barra inferior do sistema */
-            padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
         }
 
         .tenant-item {
@@ -99,42 +263,74 @@
             transition: background 0.15s;
         }
 
-        .tenant-item:hover, .tenant-item.active {
+        .tenant-item:hover {
+            background-color: #f5f6f6;
+        }
+
+        .tenant-item.active {
             background-color: #f0f2f5;
         }
 
         .avatar {
-            width: 48px;
-            height: 48px;
+            width: 49px;
+            height: 49px;
             border-radius: 50%;
-            background-color: #25d366;
+            background-color: #00a884;
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
-            font-weight: bold;
+            font-size: 1.4rem;
             margin-right: 14px;
             flex-shrink: 0;
         }
 
+        .tenant-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .tenant-row-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 4px;
+        }
+
         .tenant-info h3 {
-            font-size: 0.95rem;
+            font-size: 1rem;
+            font-weight: 500;
             color: #111b21;
-            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tenant-time {
+            font-size: 0.75rem;
+            color: #667781;
+            flex-shrink: 0;
+            margin-left: 8px;
         }
 
         .tenant-info p {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             color: #667781;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* Área de Conversa */
+        /* =========================================================
+           3. ÁREA DE CONVERSA (CHAT)
+           ========================================================= */
         .chat-area {
             flex: 1;
             display: flex;
             flex-direction: column;
             background-color: #efeae2;
+            background-image: radial-gradient(#d4cfc6 1px, transparent 1px);
+            background-size: 20px 20px;
             position: relative;
             height: 100%;
         }
@@ -144,50 +340,93 @@
             padding: 10px 16px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             border-bottom: 1px solid #d1d7db;
             z-index: 10;
-            /* Proteção para entalhes/câmeras frontais */
+            height: 60px;
             padding-top: calc(10px + env(safe-area-inset-top, 0px));
+        }
+
+        .chat-header-left {
+            display: flex;
+            align-items: center;
         }
 
         .btn-back {
             display: none;
             background: none;
             border: none;
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             color: #54656f;
             cursor: pointer;
-            margin-right: 12px;
+            margin-right: 10px;
             padding: 4px 8px;
         }
 
         .chat-header-info h3 {
-            font-size: 0.95rem;
+            font-size: 1rem;
+            font-weight: 500;
             color: #111b21;
         }
 
         .chat-header-info p {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             color: #667781;
+            transition: color 0.2s;
+        }
+
+        .chat-header-info p.typing {
+            color: #00a884;
+            font-weight: 600;
+        }
+
+        .btn-clear-chat {
+            background: none;
+            border: none;
+            color: #54656f;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 6px;
+        }
+
+        .btn-clear-chat:hover {
+            background-color: #e9edef;
         }
 
         .messages-container {
             flex: 1;
-            padding: 16px;
+            padding: 20px 7%;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 4px;
+        }
+
+        .encryption-notice {
+            align-self: center;
+            background-color: #ffeecd;
+            color: #54656f;
+            font-size: 0.75rem;
+            padding: 6px 12px;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 520px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 1px rgba(11, 20, 26, 0.08);
         }
 
         .message {
-            max-width: 80%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.9rem;
+            max-width: 65%;
+            padding: 6px 9px 8px 9px;
+            border-radius: 7.5px;
+            font-size: 0.92rem;
             line-height: 1.4;
+            color: #111b21;
             word-wrap: break-word;
             position: relative;
+            box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+            margin-bottom: 2px;
         }
 
         .message.sent {
@@ -202,42 +441,98 @@
             border-top-left-radius: 0;
         }
 
-        /* Área de Digitação com proteção de elevação */
+        .message-text {
+            white-space: pre-wrap;
+            margin-right: 54px;
+        }
+
+        .message-meta {
+            float: right;
+            margin: -10px 0 -5px 8px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.68rem;
+            color: #667781;
+            user-select: none;
+        }
+
+        .checks {
+            color: #53bdeb;
+            font-size: 0.78rem;
+            letter-spacing: -3px;
+            margin-right: 2px;
+            font-weight: bold;
+        }
+
+        /* Balão animado de "Digitando..." */
+        .typing-bubble {
+            background-color: #ffffff;
+            align-self: flex-start;
+            padding: 10px 14px;
+            border-radius: 7.5px;
+            border-top-left-radius: 0;
+            box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+            display: none;
+            align-items: center;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        .typing-bubble.visible {
+            display: inline-flex;
+        }
+
+        .typing-dot {
+            width: 7px;
+            height: 7px;
+            background-color: #8696a0;
+            border-radius: 50%;
+            animation: typingBounce 1.3s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+            30% { transform: translateY(-4px); opacity: 1; }
+        }
+
+        /* Barra Inferior de Digitação */
         .chat-input-area {
             background-color: #f0f2f5;
             padding: 10px 16px;
-            /* Garante que o input fique acima da barra de navegação do smartphone */
-            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
             display: flex;
             align-items: center;
-            gap: 10px;
-            border-top: 1px solid #e0e0e0;
+            gap: 12px;
+            z-index: 10;
         }
 
         .chat-input-area input {
             flex: 1;
-            padding: 10px 14px;
-            border: 1px solid #ced0d1;
+            padding: 11px 16px;
+            border: none;
             border-radius: 8px;
             font-size: 0.95rem;
             outline: none;
             background-color: #ffffff;
-        }
-
-        .chat-input-area input:focus {
-            border-color: #00a884;
+            color: #111b21;
         }
 
         .btn-send {
             background-color: #00a884;
             color: white;
             border: none;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 0.9rem;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.1s;
             flex-shrink: 0;
         }
 
@@ -245,168 +540,537 @@
             background-color: #008f6f;
         }
 
-        /* 📱 RESPONSIVIDADE PARA DISPOSITIVOS MÓVEIS */
+        .btn-send:active {
+            transform: scale(0.95);
+        }
+
         @media (max-width: 768px) {
-            .btn-back {
-                display: block;
-            }
-
-            .sidebar {
-                width: 100%;
-                display: flex;
-            }
-
-            .chat-area {
-                display: none;
-                width: 100%;
-            }
-
-            .app-container.show-chat .sidebar {
-                display: none;
-            }
-
-            .app-container.show-chat .chat-area {
-                display: flex;
-            }
+            .btn-back { display: block; }
+            .sidebar { width: 100%; display: flex; }
+            .chat-area { display: none; width: 100%; }
+            .app-container.show-chat .sidebar { display: none; }
+            .app-container.show-chat .chat-area { display: flex; }
+            .messages-container { padding: 14px 4%; }
+            .message { max-width: 82%; }
         }
     </style>
 </head>
 <body>
 
+    <!-- 1. MODAL OBRIGATÓRIO DE IDENTIFICAÇÃO (11 DÍGITOS) -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-card">
+            <div class="auth-logo">💬</div>
+            <h1>WhatsApp Web Mock</h1>
+            <p>Para liberar o chat, digite qualquer sequência numérica de <strong>11 dígitos</strong> (DDD + número).</p>
+            
+            <div class="phone-input-wrapper">
+                <label for="loginPhoneInput">SEU NÚMERO (11 DÍGITOS)</label>
+                <input
+                    type="tel"
+                    id="loginPhoneInput"
+                    class="phone-input-field"
+                    placeholder="Ex: 11999999999"
+                    maxlength="11"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    oninput="handlePhoneTyping(this)"
+                    onkeyup="handlePhoneTyping(this)"
+                >
+                <div class="phone-counter" id="phoneCounterBox">
+                    <span>Apenas números</span>
+                    <span id="digitCounter">0 / 11 dígitos</span>
+                </div>
+            </div>
+
+            <div class="phone-error" id="phoneError"></div>
+
+            <button type="button" class="btn-start-chat disabled-look" id="btnStartChat" onclick="confirmPhoneNumber()">
+                Entrar no WhatsApp
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. APLICAÇÃO PRINCIPAL -->
     <div class="app-container" id="appContainer">
-        <!-- 1. Barra Lateral -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>Conversas</h2>
-            </div>
-            
-            <div class="user-phone-box">
-                <label for="phoneNumber">Seu WhatsApp (com DDD):</label>
-                <input type="text" id="phoneNumber" value="5511999999999" placeholder="Ex: 5511999999999">
+                <div class="user-profile">
+                    <div class="user-avatar">👤</div>
+                    <div class="user-details">
+                        <span class="label">Seu número ativo:</span>
+                        <span class="number" id="displayPhoneNumber">--</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-change-phone" onclick="openPhoneModal()">
+                    Trocar Número
+                </button>
             </div>
 
             <ul class="tenant-list" id="tenantList">
-                <li class="tenant-item active" onclick="selectTenant('clinica_01', 'Clínica Odontológica Sorriso', '🦷')">
+                <li class="tenant-item active" data-tenant="clinica_01" onclick="selectTenant('clinica_01', 'Clínica Odontológica Sorriso', '🦷')">
                     <div class="avatar">🦷</div>
                     <div class="tenant-info">
-                        <h3>Clínica Odontológica</h3>
-                        <p>Atendimento, agendamentos e consultas</p>
+                        <div class="tenant-row-top">
+                            <h3>Clínica Odontológica Sorriso</h3>
+                            <span class="tenant-time" id="time_clinica_01"></span>
+                        </div>
+                        <p id="preview_clinica_01">Atendimento, agendamentos e consultas</p>
                     </div>
                 </li>
-                <li class="tenant-item" onclick="selectTenant('padaria_01', 'Padaria Pão Quente', '🥖')">
+                <li class="tenant-item" data-tenant="padaria_01" onclick="selectTenant('padaria_01', 'Padaria Pão Quente', '🥖')">
                     <div class="avatar">🥖</div>
                     <div class="tenant-info">
-                        <h3>Padaria Pão Quente</h3>
-                        <p>Cardápio, fornadas e produtos frescos</p>
+                        <div class="tenant-row-top">
+                            <h3>Padaria Pão Quente</h3>
+                            <span class="tenant-time" id="time_padaria_01"></span>
+                        </div>
+                        <p id="preview_padaria_01">Cardápio, fornadas e entregas</p>
                     </div>
                 </li>
             </ul>
         </aside>
 
-        <!-- 2. Área do Chat -->
         <main class="chat-area">
             <header class="chat-header">
-                <button class="btn-back" id="btnBack" onclick="goBackToTenants()" title="Trocar de estabelecimento">←</button>
-                <div class="avatar" id="currentAvatar" style="width: 40px; height: 40px; font-size: 1rem; margin-right: 10px;">🦷</div>
-                <div class="chat-header-info">
-                    <h3 id="currentTenantName">Clínica Odontológica Sorriso</h3>
-                    <p id="chatStatus">Online</p>
+                <div class="chat-header-left">
+                    <button type="button" class="btn-back" id="btnBack" onclick="goBackToTenants()">←</button>
+                    <div class="avatar" id="currentAvatar" style="width: 40px; height: 40px; font-size: 1.1rem; margin-right: 12px;">🦷</div>
+                    <div class="chat-header-info">
+                        <h3 id="currentTenantName">Clínica Odontológica Sorriso</h3>
+                        <p id="chatStatus">online</p>
+                    </div>
                 </div>
+                <button type="button" class="btn-clear-chat" onclick="clearCurrentChat()">
+                    🗑️ Limpar conversa
+                </button>
             </header>
 
-            <section class="messages-container" id="messagesContainer">
-                <div class="message received">
-                    Olá! Sou o assistente virtual. Como posso ajudar você hoje?
+            <section class="messages-container" id="messagesContainer"></section>
+
+            <div style="padding: 0 7% 8px 7%;">
+                <div class="typing-bubble" id="typingBubble">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
                 </div>
-            </section>
+            </div>
 
             <footer class="chat-input-area">
-                <input type="text" id="messageInput" placeholder="Mensagem..." autocomplete="off">
-                <button class="btn-send" onclick="sendMessage()">Enviar</button>
+                <input
+                    type="text"
+                    id="messageInput"
+                    placeholder="Digite uma mensagem"
+                    autocomplete="off"
+                    disabled
+                >
+                <button type="button" class="btn-send" id="btnSend" onclick="sendMessage()" disabled>
+                    ➤
+                </button>
             </footer>
         </main>
     </div>
 
     <script>
-        let currentTenantId = 'clinica_01';
-        let isProcessing = false;
+        // =========================================================
+        // 0. SAFE STORAGE (Não trava ao abrir via file:// sem servidor)
+        // =========================================================
+        const memoryFallback = {};
+        const SafeStorage = {
+            getItem(key) {
+                try {
+                    return localStorage.getItem(key) ?? memoryFallback[key] ?? null;
+                } catch (e) {
+                    return memoryFallback[key] ?? null;
+                }
+            },
+            setItem(key, value) {
+                memoryFallback[key] = String(value);
+                try {
+                    localStorage.setItem(key, String(value));
+                } catch (e) {
+                    // Ignora bloqueio de file:// no navegador e mantém em memória
+                }
+            },
+            removeItem(key) {
+                delete memoryFallback[key];
+                try {
+                    localStorage.removeItem(key);
+                } catch (e) {}
+            }
+        };
 
+        const TENANTS_META = {
+            clinica_01: {
+                name: 'Clínica Odontológica Sorriso',
+                icon: '🦷',
+                defaultPreview: 'Atendimento, agendamentos e consultas'
+            },
+            padaria_01: {
+                name: 'Padaria Pão Quente',
+                icon: '🥖',
+                defaultPreview: 'Cardápio, fornadas e entregas'
+            }
+        };
+
+        let currentPhoneNumber = '';
+        let currentTenantId = 'clinica_01';
+        const inFlightRequests = {};
+
+        // Buffers locais para simulação offline (quando o backend Python não está ligado)
+        const offlineBuffers = {};
+
+        // Elementos DOM
+        const authOverlay = document.getElementById('authOverlay');
+        const loginPhoneInput = document.getElementById('loginPhoneInput');
+        const digitCounter = document.getElementById('digitCounter');
+        const phoneCounterBox = document.getElementById('phoneCounterBox');
+        const phoneError = document.getElementById('phoneError');
+        const btnStartChat = document.getElementById('btnStartChat');
+        const displayPhoneNumber = document.getElementById('displayPhoneNumber');
         const appContainer = document.getElementById('appContainer');
         const messageInput = document.getElementById('messageInput');
+        const btnSend = document.getElementById('btnSend');
         const messagesContainer = document.getElementById('messagesContainer');
-        const phoneNumberInput = document.getElementById('phoneNumber');
+        const chatStatus = document.getElementById('chatStatus');
+        const typingBubble = document.getElementById('typingBubble');
 
-        messageInput.addEventListener('keypress', function (e) {
+        // =========================================================
+        // 1. VALIDAÇÃO E ENTRADA PELO NÚMERO DE 11 DÍGITOS
+        // =========================================================
+        function handlePhoneTyping(inputEl) {
+            const digitsOnly = inputEl.value.replace(/\D/g, '').slice(0, 11);
+            if (inputEl.value !== digitsOnly) {
+                inputEl.value = digitsOnly;
+            }
+
+            digitCounter.innerText = `${digitsOnly.length} / 11 dígitos`;
+
+            if (digitsOnly.length === 11) {
+                btnStartChat.classList.remove('disabled-look');
+                phoneCounterBox.classList.add('valid');
+                phoneError.innerText = '';
+                inputEl.classList.remove('invalid');
+            } else {
+                btnStartChat.classList.add('disabled-look');
+                phoneCounterBox.classList.remove('valid');
+            }
+        }
+
+        loginPhoneInput.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') {
-                sendMessage();
+                e.preventDefault();
+                confirmPhoneNumber();
             }
         });
 
+        function formatPhoneVisual(phone11) {
+            return `(${phone11.slice(0, 2)}) ${phone11.slice(2, 7)}-${phone11.slice(7)}`;
+        }
+
+        function confirmPhoneNumber() {
+            const rawPhone = loginPhoneInput.value.replace(/\D/g, '');
+            if (rawPhone.length !== 11) {
+                phoneError.innerText = `Você digitou ${rawPhone.length} número(s). Digite exatamente 11 números.`;
+                loginPhoneInput.classList.add('invalid');
+                loginPhoneInput.focus();
+                return;
+            }
+
+            currentPhoneNumber = rawPhone;
+
+            // 1. Libera a tela IMEDIATAMENTE (antes de qualquer outra operação)
+            authOverlay.classList.add('hidden');
+            messageInput.disabled = false;
+            btnSend.disabled = false;
+            displayPhoneNumber.innerText = formatPhoneVisual(currentPhoneNumber);
+
+            // 2. Salva no SafeStorage e carrega a conversa daquele número
+            SafeStorage.setItem('wpp_mock_active_phone', currentPhoneNumber);
+            refreshSidebarPreviews();
+            renderChatHistory();
+            messageInput.focus();
+        }
+
+        function openPhoneModal() {
+            loginPhoneInput.value = currentPhoneNumber;
+            handlePhoneTyping(loginPhoneInput);
+            phoneError.innerText = '';
+            authOverlay.classList.remove('hidden');
+            setTimeout(() => loginPhoneInput.focus(), 50);
+        }
+
+        // =========================================================
+        // 2. HISTÓRICO SEPARADO POR (TELEFONE + ESTABELECIMENTO)
+        // =========================================================
+        function getSessionKey(phone = currentPhoneNumber, tenantId = currentTenantId) {
+            return `wpp_chat_${phone}_${tenantId}`;
+        }
+
+        function getMessagesForSession(phone = currentPhoneNumber, tenantId = currentTenantId) {
+            const raw = SafeStorage.getItem(getSessionKey(phone, tenantId));
+            if (!raw) return [];
+            try {
+                return JSON.parse(raw);
+            } catch {
+                return [];
+            }
+        }
+
+        function saveMessageToSession(text, type, timeStr, phone = currentPhoneNumber, tenantId = currentTenantId) {
+            const list = getMessagesForSession(phone, tenantId);
+            list.push({ text, type, time: timeStr });
+            SafeStorage.setItem(getSessionKey(phone, tenantId), JSON.stringify(list));
+            refreshSidebarPreviews();
+        }
+
+        function getCurrentTimeStr() {
+            const now = new Date();
+            return now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function refreshSidebarPreviews() {
+            if (!currentPhoneNumber) return;
+
+            Object.keys(TENANTS_META).forEach(tenantId => {
+                const history = getMessagesForSession(currentPhoneNumber, tenantId);
+                const previewEl = document.getElementById(`preview_${tenantId}`);
+                const timeEl = document.getElementById(`time_${tenantId}`);
+
+                if (history.length > 0) {
+                    const lastMsg = history[history.length - 1];
+                    const prefix = lastMsg.type === 'sent' ? '✓✓ ' : '';
+                    previewEl.innerText = prefix + lastMsg.text.replace(/\n/g, ' ');
+                    timeEl.innerText = lastMsg.time || '';
+                } else {
+                    previewEl.innerText = TENANTS_META[tenantId].defaultPreview;
+                    timeEl.innerText = '';
+                }
+            });
+        }
+
+        function renderChatHistory() {
+            messagesContainer.innerHTML = `
+                <div class="encryption-notice">
+                    🔒 Sessão ativa para o número <strong>${formatPhoneVisual(currentPhoneNumber)}</strong>.<br>
+                    Você pode enviar várias mensagens seguidas como no WhatsApp real.
+                </div>
+            `;
+
+            const history = getMessagesForSession(currentPhoneNumber, currentTenantId);
+            history.forEach(msg => {
+                appendMessageDOM(msg.text, msg.type, msg.time);
+            });
+
+            updateTypingUI();
+            scrollToBottom();
+        }
+
+        function clearCurrentChat() {
+            if (!currentPhoneNumber) return;
+            SafeStorage.removeItem(getSessionKey(currentPhoneNumber, currentTenantId));
+            renderChatHistory();
+            refreshSidebarPreviews();
+        }
+
+        // =========================================================
+        // 3. SELEÇÃO DE TENANT
+        // =========================================================
         function selectTenant(tenantId, name, icon) {
             currentTenantId = tenantId;
             document.getElementById('currentTenantName').innerText = name;
             document.getElementById('currentAvatar').innerText = icon;
 
-            document.querySelectorAll('.tenant-item').forEach(item => item.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            document.querySelectorAll('.tenant-item').forEach(item => {
+                item.classList.toggle('active', item.getAttribute('data-tenant') === tenantId);
+            });
 
             appContainer.classList.add('show-chat');
-
-            messagesContainer.innerHTML = `
-                <div class="message received">
-                    Olá! Você está falando com ${name}. Como posso ajudar?
-                </div>
-            `;
+            renderChatHistory();
+            messageInput.focus();
         }
 
         function goBackToTenants() {
             appContainer.classList.remove('show-chat');
         }
 
-        async function sendMessage() {
-            const message = messageInput.value.trim();
-            const phoneNumber = phoneNumberInput.value.trim();
+        // =========================================================
+        // 4. ENVIO DE MENSAGENS SEGUIDAS (COM SUPORTE ONLINE E OFFLINE)
+        // =========================================================
+        messageInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
 
-            if (!message || isProcessing) return;
+        function updateTypingUI() {
+            const key = getSessionKey(currentPhoneNumber, currentTenantId);
+            const count = inFlightRequests[key] || 0;
 
-            appendMessage(message, 'sent');
-            messageInput.value = '';
-            isProcessing = true;
-            document.getElementById('chatStatus').innerText = 'Digitando...';
+            if (count > 0) {
+                chatStatus.innerText = 'digitando...';
+                chatStatus.classList.add('typing');
+                typingBubble.classList.add('visible');
+            } else {
+                chatStatus.innerText = 'online';
+                chatStatus.classList.remove('typing');
+                typingBubble.classList.remove('visible');
+            }
+            scrollToBottom();
+        }
 
-            try {
-                const response = await fetch('/api/v1/chat/mock', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        tenant_id: currentTenantId,
-                        phone_number: phoneNumber,
-                        message: message
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Falha na comunicação com o servidor.');
+        function simulateOfflineDebounce(senderPhone, targetTenant, message) {
+            return new Promise((resolve) => {
+                const key = getSessionKey(senderPhone, targetTenant);
+                if (!offlineBuffers[key]) {
+                    offlineBuffers[key] = { messages: [], timer: null, pendingResolvers: [] };
                 }
 
-                const data = await response.json();
-                appendMessage(data.response, 'received');
-            } catch (error) {
-                console.error(error);
-                appendMessage('Desculpe, ocorreu um erro ao processar sua mensagem.', 'received');
+                const buf = offlineBuffers[key];
+                buf.messages.push(message);
+
+                // Cancela respostas anteriores (retornando buffered) igual ao backend Python!
+                if (buf.timer) {
+                    clearTimeout(buf.timer);
+                    while (buf.pendingResolvers.length > 0) {
+                        const oldResolve = buf.pendingResolvers.shift();
+                        oldResolve({ status: 'buffered', response: '' });
+                    }
+                }
+
+                buf.pendingResolvers.push(resolve);
+
+                // Espera 3.5 segundos para ver se você vai digitar mais mensagens seguidas
+                buf.timer = setTimeout(() => {
+                    const todasMensagens = buf.messages.join(' | ');
+                    const qtd = buf.messages.length;
+                    buf.messages = [];
+                    buf.timer = null;
+
+                    const activeResolve = buf.pendingResolvers.pop();
+                    while (buf.pendingResolvers.length > 0) {
+                        buf.pendingResolvers.shift()({ status: 'buffered', response: '' });
+                    }
+
+                    const tenantNome = TENANTS_META[targetTenant].name;
+                    const reply = `[Modo Simulação Offline - ${tenantNome}]\nRecebi suas ${qtd} mensagem(ns) agrupadas de uma vez:\n"${todasMensagens}"\n\n(Inicie o servidor FastAPI para receber respostas reais do Gemini!)`;
+                    if (activeResolve) {
+                        activeResolve({ status: 'success', response: reply });
+                    }
+                }, 3500);
+            });
+        }
+
+        async function sendMessage() {
+            if (!/^\d{11}$/.test(currentPhoneNumber)) {
+                openPhoneModal();
+                return;
+            }
+
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            const senderPhone = currentPhoneNumber;
+            const targetTenant = currentTenantId;
+            const sessionKey = getSessionKey(senderPhone, targetTenant);
+            const timeNow = getCurrentTimeStr();
+
+            // Limpa o campo imediatamente para permitir mandar várias mensagens seguidas
+            messageInput.value = '';
+            messageInput.focus();
+
+            saveMessageToSession(message, 'sent', timeNow, senderPhone, targetTenant);
+            if (currentPhoneNumber === senderPhone && currentTenantId === targetTenant) {
+                appendMessageDOM(message, 'sent', timeNow);
+            }
+
+            inFlightRequests[sessionKey] = (inFlightRequests[sessionKey] || 0) + 1;
+            updateTypingUI();
+
+            try {
+                let data;
+
+                // Se foi aberto direto pelo arquivo (file://), já usa a simulação offline
+                if (window.location.protocol === 'file:') {
+                    data = await simulateOfflineDebounce(senderPhone, targetTenant, message);
+                } else {
+                    try {
+                        const response = await fetch('/api/v1/chat/mock', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                tenant_id: targetTenant,
+                                phone_number: senderPhone,
+                                message: message
+                            })
+                        });
+
+                        if (!response.ok) throw new Error('Status HTTP ' + response.status);
+                        data = await response.json();
+                    } catch (networkErr) {
+                        // Fallback caso o servidor FastAPI tenha sido desligado
+                        data = await simulateOfflineDebounce(senderPhone, targetTenant, message);
+                    }
+                }
+
+                // Ignora silenciosamente requisições intermediárias agrupadas no buffer
+                if (!data || data.status === 'buffered' || !data.response || !data.response.trim()) {
+                    return;
+                }
+
+                const replyTime = getCurrentTimeStr();
+                saveMessageToSession(data.response, 'received', replyTime, senderPhone, targetTenant);
+
+                if (currentPhoneNumber === senderPhone && currentTenantId === targetTenant) {
+                    appendMessageDOM(data.response, 'received', replyTime);
+                }
             } finally {
-                isProcessing = false;
-                document.getElementById('chatStatus').innerText = 'Online';
+                inFlightRequests[sessionKey] = Math.max(0, (inFlightRequests[sessionKey] || 1) - 1);
+                updateTypingUI();
             }
         }
 
-        function appendMessage(text, type) {
+        function appendMessageDOM(text, type, timeStr) {
             const msgDiv = document.createElement('div');
             msgDiv.classList.add('message', type);
-            msgDiv.innerText = text;
+
+            const textSpan = document.createElement('span');
+            textSpan.className = 'message-text';
+            textSpan.innerText = text;
+
+            const metaSpan = document.createElement('span');
+            metaSpan.className = 'message-meta';
+
+            const timeNode = document.createElement('span');
+            timeNode.innerText = timeStr || getCurrentTimeStr();
+            metaSpan.appendChild(timeNode);
+
+            if (type === 'sent') {
+                const checksNode = document.createElement('span');
+                checksNode.className = 'checks';
+                checksNode.innerText = '✓✓';
+                metaSpan.appendChild(checksNode);
+            }
+
+            msgDiv.appendChild(textSpan);
+            msgDiv.appendChild(metaSpan);
             messagesContainer.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedPhone = SafeStorage.getItem('wpp_mock_active_phone');
+            if (savedPhone && /^\d{11}$/.test(savedPhone)) {
+                loginPhoneInput.value = savedPhone;
+                handlePhoneTyping(loginPhoneInput);
+            }
+            loginPhoneInput.focus();
+        });
     </script>
 </body>
 </html>

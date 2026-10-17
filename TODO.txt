@@ -1,18 +1,33 @@
-[] Subir no GitHub
-[] Implementar persistência de sessões e banco de dados com SQLite
-[] Implementar ferramenta de comunicação do modelo com o banco de dados
-[] Entender a arquitetura do nosso produto até agora
-[] Implementar testes
-[] Migrar para o API da Whatsapp business da META
-	[] Comprar um chip
-	[] Entender o API
-[] Handover para humano
-[] Engenharia de prompt
-[] Implementar dashboard dos tenants
-[] Pensar em segurança da aplicação (como eles podem hackear a aplicação)
-[] Pensar em um parceiro de projeto (Lontro? Robson? Lucas?)
-[] Estimação de custos e precificação da aplicação
-[] Deploy no AWS (pesquisar sobre o AWS primeiro)
-[] Abrir CNPJ e pesquisar sobre questões burocráticas
-[] Pitch e slides da apresentação
-[] Piloto com primeiro cliente
+[x] Subir no GitHub
+[x] Implementar persistência de sessões e banco de dados com SQLite
+[x] Implementar ferramenta de comunicação do modelo com o banco de dados
+[ ] Entender a arquitetura do nosso produto até agora
+[ ] Refatorar o código
+	[ ] Migrar para SQLAlchemy assíncrono com PostgreSQL
+	[ ] Tornar o código mais assíncrono no geral
+        [ ] Implementar Injeção de Dependências
+	[ ] Desacoplar o RAG do Startup (para tornar o startup do servidor instantâneo)
+	[ ] Usar uma biblioteca de logging
+[ ] Implementar testes 
+[ ] Migrar para o API da Whatsapp business da META
+	[ ] Comprar um chip
+	[ ] Entender o API
+	[ ] Fila assíncrona para processamento de mensagens	
+[ ] Handover para humano
+[ ] Mecanismos de Fallback
+[ ] Engenharia de prompt
+---------------------------------------- Tentar fazer o acima até o final do ano
+[ ] Rotina automatizada de Backup dos Bancos
+[ ] Integrar uma ferramenta como Langfuse, Helicone ou logs estruturados para auditar onde e por que o modelo alucinou ou qual ferramenta demorou para responder.
+[ ] Rate Limiting
+[ ] Implementar dashboard dos tenants
+	[ ] Rastreamento de tokens
+[ ] Pensar em segurança da aplicação (como eles podem hackear a aplicação) e medidas contra prompt injection
+[ ] Segurança e Conformidade (LGPD)
+[ ] Pensar em um parceiro de projeto (Lontro? Robson? Lucas?)
+[ ] Estimação de custos e precificação da aplicação
+[ ] Pesquisar Docker
+[ ] Deploy no AWS (pesquisar sobre o AWS primeiro)
+[ ] Abrir CNPJ e pesquisar sobre questões burocráticas
+[ ] Pitch e slides da apresentação
+[ ] Piloto com primeiro cliente

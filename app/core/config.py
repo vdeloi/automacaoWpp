@@ -1,7 +1,6 @@
 # app/core/config.py
-
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -16,7 +15,13 @@ class Settings(BaseSettings):
     model_name: str = Field(
         default="gemini-3.6-flash",
         alias="MODEL_NAME",
-        description="Modelo padrão do Gemini utilizado nas interações da Interactions API."
+        description="Modelo principal do Gemini utilizado nas interações da Interactions API."
+    )
+    # NOVO: Modelo leve e rápido dedicado exclusivamente a prever se o usuário terminou de digitar
+    classifier_model_name: str = Field(
+        default="gemini-3.5-flash-lite",
+        alias="CLASSIFIER_MODEL_NAME",
+        description="Modelo rápido e de baixo custo para previsão de fim de turno (Turn-Taking)."
     )
     environment: str = Field(
         default="development",
@@ -27,7 +32,6 @@ class Settings(BaseSettings):
         description="Porta de execução do servidor FastAPI."
     )
 
-    # Configuração para leitura automática do arquivo .env
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -36,9 +40,7 @@ class Settings(BaseSettings):
 
 
 def get_settings() -> Settings:
-    """
-    Função de fábrica para instanciar as configurações com tratamento defensivo.
-    """
+    """Função de fábrica para instanciar as configurações com tratamento defensivo."""
     try:
         settings_instance = Settings()
     except Exception as error:
@@ -48,5 +50,4 @@ def get_settings() -> Settings:
         return settings_instance
 
 
-# Instância global para ser importada pelos outros módulos
 settings = get_settings()

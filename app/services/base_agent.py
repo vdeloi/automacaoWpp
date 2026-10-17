@@ -1,15 +1,11 @@
 # app/services/base_agent.py
-
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 from pydantic import BaseModel, Field
 
 
 class AgentResponse(BaseModel):
-    """
-    Modelo de dados padronizado para representar a resposta de qualquer LLM.
-    Garante o encapsulamento dos dados retornados para o restante do sistema.
-    """
+    """Modelo de dados padronizado para representar a resposta de qualquer LLM."""
     text_output: str = Field(
         description="Texto final gerado pelo modelo para ser enviado ao utilizador."
     )
@@ -28,34 +24,19 @@ class AgentResponse(BaseModel):
 
 
 class BaseLLMAgent(ABC):
-    """
-    Classe Abstrata de Agente (Contrato / Interface).
-    Qualquer provedor de IA (Gemini, OpenAI, DeepSeek) DEVE herdar desta classe.
-    """
+    """Classe Abstrata de Agente Stateless (segura para concorrência)."""
 
-    def __init__(self, model_name: str, system_instruction: Optional[str] = None):
-        """
-        Inicializa o agente base com o nome do modelo e instruções do sistema.
-        """
+    def __init__(self, model_name: str, default_system_instruction: Optional[str] = None):
         self.model_name = model_name
-        self.system_instruction = system_instruction
+        self.default_system_instruction = default_system_instruction
 
     @abstractmethod
-    def generate_interaction(
+    async def generate_interaction(
         self,
         user_input: str,
+        system_instruction: Optional[str] = None,
         previous_interaction_id: Optional[str] = None,
-        tools: Optional[List[Any]] = None,
-        response_schema: Optional[Any] = None,
         **kwargs: Any
     ) -> AgentResponse:
-        """
-        Método abstrato principal para gerar uma interação multiturno.
-        
-        Parâmetros:
-            user_input: A mensagem do cliente do WhatsApp.
-            previous_interaction_id: O ID da interação anterior para manter a memória no servidor.
-            tools: Lista de funções/ferramentas que o modelo pode chamar.
-            response_schema: Esquema Pydantic para saídas estruturadas (JSON).
-        """
+        """Método abstrato assíncrono para gerar uma interação multiturno."""
         pass

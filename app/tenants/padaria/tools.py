@@ -1,19 +1,44 @@
 # app/tenants/padaria/tools.py
-import re
 import math
-from typing import Optional, Tuple, Any
-from geopy.geocoders import Nominatim
+import re
+import threading
+import time
+from functools import lru_cache
+from typing import Optional, Tuple
+
 from geopy.distance import geodesic
+from geopy.geocoders import Nominatim
 from app.tools.base_tool import AppTool
 
-# Endereço base da Padaria Pão Quente em Ribeirão Preto
-ENDERECO_PADARIA = "Rua General Osório, 500, Centro, Ribeirão Preto, São Paulo, Brasil"
+# Coordenadas fixas da Padaria Pão Quente (Rua General Osório, 500, Centro, Ribeirão Preto - SP)
+# Evita fazer chamada de rede repetida para o mesmo endereço a cada requisição concorrente.
+COORDENADAS_PADARIA: Tuple[float, float] = (-21.177631, -47.810098)
+
+# Lock e timestamp para respeitar o Rate Limit de 1 req/s da API Nominatim sob alta concorrência
+_nominatim_lock = threading.Lock()
+_last_nominatim_call: float = 0.0
+_geolocator = Nominatim(user_agent="padaria_pao_quente_wpp_v3")
+
+
+def _geocode_rate_limited(query: str) -> Optional[Tuple[float, float]]:
+    """
+    Executa chamada ao Nominatim protegida por Lock para que múltiplas threads
+    não causem bloqueio de IP (HTTP 429/403) por excesso de requisições simultâneas.
+    """
+    global _last_nominatim_call
+    with _nominatim_lock:
+        elapsed = time.monotonic() - _last_nominatim_call
+        if elapsed < 1.1:
+            time.sleep(1.1 - elapsed)
+        loc = _geolocator.geocode(query, timeout=10)
+        _last_nominatim_call = time.monotonic()
+        if loc:
+            return (loc.latitude, loc.longitude)
+        return None
+
 
 def calcular_valor_por_distancia(distancia_km: float) -> Tuple[float, bool]:
-    """
-    Calcula a taxa de entrega com base na distância linear em quilômetros.
-    Retorna uma tupla: (valor_em_reais, entrega_permitida).
-    """
+    """Calcula a taxa de entrega com base na distância linear em quilômetros."""
     if distancia_km < 0:
         return 0.0, False
     if distancia_km <= 0.5:
@@ -31,71 +56,67 @@ def calcular_valor_por_distancia(distancia_km: float) -> Tuple[float, bool]:
     else:
         return 0.0, False
 
+
 def _limpar_formatacao_endereco(texto: str) -> str:
     """Remove vírgulas repetidas, espaços extras e normaliza o estado."""
-    texto = re.sub(r'\bSP\b', 'São Paulo', texto, flags=re.IGNORECASE)
-    texto = re.sub(r'[,\s]*,[,\s]*', ', ', texto)
-    texto = re.sub(r'\s+', ' ', texto).strip(' ,')
+    texto = re.sub(r"\bSP\b", "São Paulo", texto, flags=re.IGNORECASE)
+    texto = re.sub(r"[,\s]*,[,\s]*", ", ", texto)
+    texto = re.sub(r"\s+", " ", texto).strip(" ,")
     return texto
 
-def geocodificar_com_fallback(geolocator: Nominatim, endereco: str) -> Optional[Any]:
+
+@lru_cache(maxsize=512)
+def geocodificar_com_fallback(endereco: str) -> Optional[Tuple[float, float]]:
     """
-    Estratégia de geocodificação progressiva em camadas para máxima resiliência.
+    Estratégia de geocodificação progressiva com cache em memória (Thread-Safe).
+    Se dois clientes consultarem o mesmo endereço/rua, o retorno é imediato (0ms).
     """
     endereco_limpo = _limpar_formatacao_endereco(endereco)
 
     # 1. Tentativa 1: Endereço completo formatado
-    consulta_1 = f"{endereco_limpo}, Brasil"
-    loc = geolocator.geocode(consulta_1, timeout=10)
-    if loc:
-        return loc
+    coords = _geocode_rate_limited(f"{endereco_limpo}, Brasil")
+    if coords:
+        return coords
 
     # 2. Tentativa 2: Sem números prediais
-    sem_numero = re.sub(r'\b\d+\b', '', endereco_limpo)
+    sem_numero = re.sub(r"\b\d+\b", "", endereco_limpo)
     sem_numero = _limpar_formatacao_endereco(sem_numero)
-    consulta_2 = f"{sem_numero}, Brasil"
-    loc = geolocator.geocode(consulta_2, timeout=10)
-    if loc:
-        return loc
+    coords = _geocode_rate_limited(f"{sem_numero}, Brasil")
+    if coords:
+        return coords
 
     # 3. Tentativa 3: Sem prefixos de logradouro
-    sem_prefixo = re.sub(r'\b(rua|avenida|av|travessa|alameda|r\.)\b', '', sem_numero, flags=re.IGNORECASE)
+    sem_prefixo = re.sub(
+        r"\b(rua|avenida|av|travessa|alameda|r\.)\b", "", sem_numero, flags=re.IGNORECASE
+    )
     sem_prefixo = _limpar_formatacao_endereco(sem_prefixo)
-    consulta_3 = f"{sem_prefixo}, Brasil"
-    loc = geolocator.geocode(consulta_3, timeout=10)
-    if loc:
-        return loc
+    coords = _geocode_rate_limited(f"{sem_prefixo}, Brasil")
+    if coords:
+        return coords
 
     # 4. Tentativa 4: Variações fonéticas/ortográficas comuns
     if "giacheto" in sem_prefixo.lower():
-        variacao = re.sub(r'giacheto', 'Giachetto', sem_prefixo, flags=re.IGNORECASE)
-        loc = geolocator.geocode(f"{variacao}, Brasil", timeout=10)
-        if loc:
-            return loc
+        variacao = re.sub(r"giacheto", "Giachetto", sem_prefixo, flags=re.IGNORECASE)
+        coords = _geocode_rate_limited(f"{variacao}, Brasil")
+        if coords:
+            return coords
 
     return None
 
+
 def calcular_taxa_entrega_handler(endereco_cliente: str) -> str:
-    """
-    Função handler executada pelo agente Gemini para calcular a taxa de entrega.
-    """
+    """Função handler executada em thread separada pelo agente Gemini."""
     print(f"[TOOL EXECUTADA - PADARIA] Calculando entrega para: {endereco_cliente}")
     try:
-        geolocator = Nominatim(user_agent="padaria_pao_quente_wpp_v3")
+        ponto_cliente = geocodificar_com_fallback(endereco_cliente)
 
-        loc_padaria = geolocator.geocode(ENDERECO_PADARIA, timeout=10)
-        loc_cliente = geocodificar_com_fallback(geolocator, endereco_cliente)
-
-        if not loc_cliente:
+        if not ponto_cliente:
             return (
                 f"Não foi possível localizar o endereço '{endereco_cliente}'. "
                 "Por favor, peça ao cliente para confirmar o nome da rua, bairro ou CEP."
             )
 
-        ponto_padaria = (loc_padaria.latitude, loc_padaria.longitude)
-        ponto_cliente = (loc_cliente.latitude, loc_cliente.longitude)
-
-        distancia_km = geodesic(ponto_padaria, ponto_cliente).kilometers
+        distancia_km = geodesic(COORDENADAS_PADARIA, ponto_cliente).kilometers
         valor, entrega_disponivel = calcular_valor_por_distancia(distancia_km)
 
         if not entrega_disponivel:
@@ -119,7 +140,7 @@ def calcular_taxa_entrega_handler(endereco_cliente: str) -> str:
         print(f"[ERRO GEOPY] Falha ao calcular rota: {error}")
         return "Ocorreu uma instabilidade temporária no serviço de mapas ao consultar o endereço."
 
-# Ferramenta de cálculo de taxa de entrega
+
 tool_calcular_taxa_entrega = AppTool(
     name="calcular_taxa_entrega",
     description="Calcula o valor da taxa de entrega para a Padaria Pão Quente com base no endereço do cliente.",
@@ -128,21 +149,22 @@ tool_calcular_taxa_entrega = AppTool(
         "properties": {
             "endereco_cliente": {
                 "type": "string",
-                "description": "Endereço de destino fornecido pelo cliente."
+                "description": "Endereço de destino fornecido pelo cliente.",
             }
         },
-        "required": ["endereco_cliente"]
+        "required": ["endereco_cliente"],
     },
-    handler=calcular_taxa_entrega_handler
+    handler=calcular_taxa_entrega_handler,
 )
 
-# Ferramenta de verificação de fornada
+
 def verificar_fornada_handler() -> str:
     return "A próxima fornada de pão francês sai daqui a 10 minutos!"
+
 
 tool_verificar_fornada = AppTool(
     name="verificar_status_fornada",
     description="Verifica a previsão do horário da próxima fornada de pão quente.",
     parameters={"type": "object", "properties": {}},
-    handler=verificar_fornada_handler
+    handler=verificar_fornada_handler,
 )

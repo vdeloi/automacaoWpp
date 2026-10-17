@@ -5,6 +5,10 @@ from typing import Dict, Optional
 from google import genai
 from app.core.config import settings
 
+# Definimos quais arquivos o Gemini tem permissão para ler. 
+# Arquivos como .db, .jpg ou .mp4 serão completamente ignorados.
+EXTENSOES_PERMITIDAS = {".txt", ".pdf", ".md", ".csv"}
+
 class RAGService:
     """
     Gerencia a indexação de documentos e FileSearchStores para cada tenant.
@@ -39,19 +43,25 @@ class RAGService:
         return new_store.name
 
     def upload_tenant_documents(self, tenant_id: str, documents_dir: str) -> Optional[str]:
-        """Indexa apenas arquivos que ainda não estejam na store."""
+        """Indexa apenas arquivos permitidos que ainda não estejam na store."""
         try:
             if not os.path.exists(documents_dir):
                 return None
 
-            arquivos = [
-                os.path.join(documents_dir, f)
-                for f in os.listdir(documents_dir)
-                if os.path.isfile(os.path.join(documents_dir, f))
-            ]
+            # Monta a lista ignorando subpastas e filtrando pela extensão do arquivo
+            arquivos = []
+            for f in os.listdir(documents_dir):
+                caminho_completo = os.path.join(documents_dir, f)
+                
+                # Separa o nome do arquivo da extensão (ex: 'clinica', '.db')
+                _, extensao = os.path.splitext(f)
+                
+                # Só adiciona se for um arquivo e se a extensão estiver na lista branca
+                if os.path.isfile(caminho_completo) and extensao.lower() in EXTENSOES_PERMITIDAS:
+                    arquivos.append(caminho_completo)
 
             if not arquivos:
-                print(f"[AVISO RAG] Nenhum documento em: {documents_dir}")
+                print(f"[AVISO RAG] Nenhum documento de texto válido encontrado em: {documents_dir}")
                 return None
 
             store_name = self.get_or_create_store(tenant_id=tenant_id)
