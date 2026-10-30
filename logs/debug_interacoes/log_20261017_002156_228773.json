@@ -1,0 +1,17 @@
+{
+    "timestamp": "2026-10-17T00:21:55.196564",
+    "tempo_total_segundos": 3.397,
+    "tokens": {
+        "input": 0,
+        "output": 0,
+        "total": 0
+    },
+    "ferramentas_utilizadas": [],
+    "rag_utilizado": false,
+    "pergunta_usuario": "Olá!",
+    "resposta_agente": "Olá! Seja bem-vindo(a) à nossa Clínica Médica. \n\nComo posso ajudar você hoje? Se deseja agendar uma consulta, por favor, me informe qual é a especialidade ou o nome do médico desejado, além da data de sua preferência.",
+    "avaliacao_alucinacao": {
+        "alucinou": false,
+        "justificativa": "A resposta é apenas uma saudação educada e uma pergunta padrão de atendimento, sem conter alucinações ou promessas fora de contexto."
+    }
+}

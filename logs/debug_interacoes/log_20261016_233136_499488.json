@@ -1,0 +1,18 @@
+{
+    "timestamp": "2026-10-16T23:31:26.494537",
+    "modelo_utilizado": "gemini-3.5-flash-lite",
+    "tempo_total_segundos": 8.448,
+    "tokens": {
+        "input": 0,
+        "output": 0,
+        "total": 0
+    },
+    "ferramentas_utilizadas": [],
+    "rag_utilizado": true,
+    "pergunta_usuario": "á tudo bem. Só confirmando, vocês aceitam pluxee?",
+    "resposta_agente": "Nós aceitamos vale-refeição e vale-alimentação de várias bandeiras, mas infelizmente a Pluxee nós não aceitamos. Trabalhamos com Pix, dinheiro e as demais bandeiras de cartões. Posso te ajudar com alguma outra forma de pagamento?",
+    "avaliacao_alucinacao": {
+        "alucinou": false,
+        "justificativa": "A resposta do agente aborda diretamente a pergunta sobre o aceite da Pluxee, informando de maneira clara e factual que a bandeira não é aceita, além de listar outras formas de pagamento disponíveis sem inventar informações."
+    }
+}

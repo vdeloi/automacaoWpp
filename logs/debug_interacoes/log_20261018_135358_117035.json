@@ -1,0 +1,17 @@
+{
+    "timestamp": "2026-10-18T13:53:57.350500",
+    "tempo_total_segundos": 2.398,
+    "tokens": {
+        "input": 0,
+        "output": 0,
+        "total": 0
+    },
+    "ferramentas_utilizadas": [],
+    "rag_utilizado": false,
+    "pergunta_usuario": "Que tal às 14h?",
+    "resposta_agente": "Para que eu possa registrar o seu agendamento com o Dr. João para amanhã, 18/10/2026, às 14:00, por favor, me informe o seu **nome completo**.",
+    "avaliacao_alucinacao": {
+        "alucinou": false,
+        "justificativa": "O agente utilizou o contexto anterior da conversa de forma coerente para confirmar o horário proposto, solicitando apenas o nome completo necessário para concluir a ação."
+    }
+}

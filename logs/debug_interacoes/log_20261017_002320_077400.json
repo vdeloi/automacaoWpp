@@ -1,0 +1,17 @@
+{
+    "timestamp": "2026-10-17T00:23:19.243620",
+    "tempo_total_segundos": 6.191,
+    "tokens": {
+        "input": 0,
+        "output": 0,
+        "total": 0
+    },
+    "ferramentas_utilizadas": [],
+    "rag_utilizado": true,
+    "pergunta_usuario": "Qual o prato do dia de hoje?",
+    "resposta_agente": "O nosso prato do dia de hoje é um delicioso contra filé com farofa, custando 15.90 R$. É uma delícia, vai querer experimentar?",
+    "avaliacao_alucinacao": {
+        "alucinou": false,
+        "justificativa": "A resposta fornecida atende diretamente à pergunta do usuário sobre o prato do dia, informando o prato e o preço de forma coerente com o contexto de atendimento, sem evidências de invenção factual prejudicial."
+    }
+}

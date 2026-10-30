@@ -1,6 +1,5 @@
 # app/models/chat.py
-
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -34,9 +33,9 @@ class ChatResponse(BaseModel):
     )
     interaction_id: Optional[str] = Field(
         default=None,
-        description="Identificador da sessão no servidor do Google."
+        description="Identificador da sessão no servidor do provedor de IA (ex: Google)."
     )
-    status: str = Field(
+    status: Literal["success", "buffered", "error"] = Field(
         default="success",
-        description="Status do processamento."
+        description="Status do processamento ('success', 'buffered' ou 'error')."
     )

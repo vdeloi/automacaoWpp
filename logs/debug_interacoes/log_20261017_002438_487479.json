@@ -1,0 +1,17 @@
+{
+    "timestamp": "2026-10-17T00:24:37.740046",
+    "tempo_total_segundos": 10.538,
+    "tokens": {
+        "input": 0,
+        "output": 0,
+        "total": 0
+    },
+    "ferramentas_utilizadas": [],
+    "rag_utilizado": true,
+    "pergunta_usuario": "qual o prato do dia de vocês?",
+    "resposta_agente": "O nosso prato do dia é um delicioso contra filé com farofa, por apenas 15,90 R$! Vai querer um para aproveitar?",
+    "avaliacao_alucinacao": {
+        "alucinou": false,
+        "justificativa": "A resposta fornecida é direta e responde à pergunta com uma sugestão de prato e preço, o que é comum para um agente de atendimento, sem evidências de alucinação baseada apenas no contexto fornecido."
+    }
+}

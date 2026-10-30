@@ -1,42 +1,35 @@
 # app/main.py
-import asyncio
-from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
+import os
 from contextlib import asynccontextmanager
-from typing import Dict, Tuple
-
-from fastapi import FastAPI, status
+from fastapi import Depends, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.core.config import settings
+from app.api.dashboard_router import router as dashboard_router
+from app.core.config import get_settings
+from app.core.container import AppContainer
+from app.core.logger import logger
+from app.domain.interfaces import IncomingMessage
 from app.models.chat import ChatRequest, ChatResponse
-from app.services.gemini_agent import GeminiInteractionsAgent
-from app.services.message_buffer import LLMTurnPredictor, message_buffer
-from app.services.session_manager import session_manager
-from app.tenants.registry import tenant_registry
-
-# Locks isolados por (tenant_id, phone_number)
-_session_locks: Dict[Tuple[str, str], asyncio.Lock] = defaultdict(asyncio.Lock)
+from app.services.chat_orchestrator import ChatOrchestratorService
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Configura pool de threads ampliado e inicializa RAG sem bloquear o servidor."""
-    loop = asyncio.get_running_loop()
-    loop.set_default_executor(ThreadPoolExecutor(max_workers=100))
-
-    print("[INICIALIZAÇÃO] Sincronizando RAG dos tenants em background thread...")
-    await asyncio.to_thread(tenant_registry.inicializar_todos_os_rags)
+    settings = get_settings()
+    container = AppContainer(settings=settings)
+    app.state.container = container
+    logger.info("Inicializando bancos assíncronos e sincronizando RAG...")
+    await container.startup()
     yield
-    print("[ENCERRAMENTO] Finalizando aplicação...")
+    logger.info("Encerrando conexões e pool HTTP...")
+    await container.shutdown()
 
 
 app = FastAPI(
     title="Assistente Virtual Multi-Tenant - GenAI",
-    version="1.0.0",
-    description="Plataforma multi-tenant para atendimento automatizado via WhatsApp.",
+    version="2.1.0",
     lifespan=lifespan,
 )
 
@@ -48,17 +41,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/mock", StaticFiles(directory="mock_frontend", html=True), name="mock")
+# Regista os endpoints REST do Dashboard
+app.include_router(dashboard_router)
 
-gemini_agent = GeminiInteractionsAgent(
-    api_key=settings.gemini_api_key,
-    model_name=settings.model_name,
-)
+# Mantém o frontend Mock original intacto e monta a GUI do Dashboard em /dashboard
+os.makedirs("dashboard_frontend", exist_ok=True)
+app.mount("/mock", StaticFiles(directory="mock_frontend", html=True), name="mock")
+app.mount("/dashboard", StaticFiles(directory="dashboard_frontend", html=True), name="dashboard")
+
+
+def get_orchestrator(request: Request) -> ChatOrchestratorService:
+    """Dependency Provider do FastAPI."""
+    return request.app.state.container.chat_orchestrator
 
 
 @app.get("/", tags=["Health Check"])
 async def root():
-    """Redireciona a raiz para a interface web."""
     return RedirectResponse(url="/mock")
 
 
@@ -68,87 +66,13 @@ async def root():
     status_code=status.HTTP_200_OK,
     tags=["WhatsApp Mock"],
 )
-async def process_mock_message(request: ChatRequest) -> ChatResponse:
-    try:
-        tenant = tenant_registry.get_tenant(request.tenant_id)
-        if not tenant:
-            return ChatResponse(
-                response="Desculpe, o estabelecimento selecionado não foi encontrado.",
-                interaction_id=None,
-                status="error",
-            )
-
-        # 1. Buffer Inteligente: Micro-debounce (1.5s) + Previsão de Fim de Turno via LLM Leve
-        mensagem_unificada = await message_buffer.enqueue_and_wait(
-            tenant_id=request.tenant_id,
-            phone_number=request.phone_number,
-            message=request.message,
-        )
-
-        # Se retornou None, o usuário enviou outra mensagem antes do turno acabar.
-        # Encerramos esta requisição intermediária; a última requisição responderá tudo junto.
-        if mensagem_unificada is None:
-            return ChatResponse(
-                response="",
-                interaction_id=None,
-                status="buffered",
-            )
-
-        # 2. Processamento no Agente Principal com as mensagens unificadas
-        session_key = (request.tenant_id, request.phone_number)
-        async with _session_locks[session_key]:
-            previous_id = await asyncio.to_thread(
-                session_manager.get_last_interaction_id,
-                tenant_id=request.tenant_id,
-                phone_number=request.phone_number,
-            )
-
-            await asyncio.to_thread(
-                session_manager.add_message,
-                phone_number=request.phone_number,
-                tenant_id=request.tenant_id,
-                role="user",
-                content=mensagem_unificada,
-            )
-
-            agent_response = await gemini_agent.generate_interaction(
-                user_input=mensagem_unificada,
-                system_instruction=tenant.system_instruction,
-                previous_interaction_id=previous_id,
-                tool_schemas=tenant.get_all_tool_schemas(),
-                tool_map=tenant.get_tool_map(),
-            )
-
-            if agent_response.interaction_id:
-                await asyncio.to_thread(
-                    session_manager.save_interaction_id,
-                    tenant_id=request.tenant_id,
-                    phone_number=request.phone_number,
-                    interaction_id=agent_response.interaction_id,
-                )
-
-            await asyncio.to_thread(
-                session_manager.add_message,
-                phone_number=request.phone_number,
-                tenant_id=request.tenant_id,
-                role="assistant",
-                content=agent_response.text_output,
-            )
-
-        # 3. Simula o tempo de digitação proporcional ao tamanho da resposta gerada
-        typing_delay = LLMTurnPredictor.calculate_typing_delay(agent_response.text_output)
-        await asyncio.sleep(typing_delay)
-
-    except Exception as error:
-        print(f"[ERRO NO PROCESSAMENTO] Falha no endpoint: {error}")
-        return ChatResponse(
-            response="Ocorreu um erro temporário ao processar o seu atendimento.",
-            interaction_id=None,
-            status="error",
-        )
-    else:
-        return ChatResponse(
-            response=agent_response.text_output,
-            interaction_id=agent_response.interaction_id,
-            status="success",
-        )
+async def process_mock_message(
+    request: ChatRequest,
+    orchestrator: ChatOrchestratorService = Depends(get_orchestrator),
+) -> ChatResponse:
+    incoming = IncomingMessage(
+        tenant_id=request.tenant_id,
+        phone_number=request.phone_number,
+        text=request.message,
+    )
+    return await orchestrator.handle_incoming_message(incoming)

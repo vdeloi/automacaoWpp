@@ -1,0 +1,19 @@
+{
+    "timestamp": "2026-10-18T13:53:53.534595",
+    "tempo_total_segundos": 4.628,
+    "tokens": {
+        "input": 0,
+        "output": 0,
+        "total": 0
+    },
+    "ferramentas_utilizadas": [
+        "consultar_horarios_disponiveis"
+    ],
+    "rag_utilizado": false,
+    "pergunta_usuario": "25/10/2023? Eu gostaria para amanhã (10/18/2026)",
+    "resposta_agente": "Compreendido! Para o dia 18/10/2026, a agenda do Dr. João está totalmente livre. \n\nQual horário comercial você prefere (por exemplo: 09:00, 14:00) e qual é o seu **nome completo** para realizarmos o agendamento?",
+    "avaliacao_alucinacao": {
+        "alucinou": false,
+        "justificativa": "O agente interpretou corretamente a data solicitada (18/10/2026), ignorando a data errada do início da frase do usuário, e prosseguiu com o fluxo de agendamento de forma coerente."
+    }
+}

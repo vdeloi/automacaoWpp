@@ -3,6 +3,8 @@
 # Projeto: Automação WhatsApp com GenAI
 # =======================================================
 
+livros/
+
 # -------------------------------------------------------
 # 1. AMBIENTES VIRTUAIS (Leves e Reinstaláveis)
 # -------------------------------------------------------
@@ -100,5 +102,4 @@ htmlcov/
 .vscode/
 .idea/
 
-# PDF's
-*.pdf
+token_git_wpp_project.txt

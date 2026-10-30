@@ -1,0 +1,441 @@
+<!-- dashboard_frontend/index.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Multi-Tenant | Observabilidade de Agentes IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+    <script>
+        // Inicializa o Mermaid desativando a criação automática de banners de erro no DOM
+        mermaid.initialize({
+            startOnLoad: false,
+            suppressErrorRendering: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            flowchart: { htmlLabels: true, curve: 'basis' }
+        });
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans">
+    <!-- Barra Superior -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+            <div>
+                <h1 class="text-xl font-bold tracking-tight">Painel de Gestão e Insights Multi-Tenant</h1>
+                <p class="text-xs text-slate-400">Observabilidade de Tokens (Proxy: 3,8 chars/tk), Evolução Diária, Topologia FSM, RAG & SQLite</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <label for="tenantSelect" class="text-sm font-medium text-slate-300">Tenant Ativo:</label>
+                <select id="tenantSelect" class="bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500"></select>
+                <button onclick="reloadCurrentTenant()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+                    Atualizar Dados
+                </button>
+                <a href="/mock" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-2 rounded-lg">
+                    Ir para WhatsApp Mock
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-6 space-y-8">
+        <!-- 1. KPIs e Evolução Diária de Consumo de Tokens -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold text-slate-800">1. Telemetria de Tokens & Evolução no Tempo (Por Dia)</h2>
+                <span id="proxyBadge" class="text-xs bg-indigo-100 text-indigo-800 font-semibold px-2.5 py-1 rounded">
+                    Regra: 1 token = 3,8 caracteres
+                </span>
+            </div>
+
+            <!-- Cards de Resumo -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <p class="text-xs uppercase font-semibold text-slate-400">Total de Tokens (Estimado)</p>
+                    <p id="kpiTotalTokens" class="text-3xl font-extrabold text-indigo-600 mt-1">0</p>
+                    <p id="kpiTotalChars" class="text-xs text-slate-500 mt-1">0 caracteres processados</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <p class="text-xs uppercase font-semibold text-slate-400">Tokens de Entrada (Input)</p>
+                    <p id="kpiInputTokens" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+                    <p id="kpiInputChars" class="text-xs text-slate-500 mt-1">0 caracteres enviados</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <p class="text-xs uppercase font-semibold text-slate-400">Tokens de Saída (Output)</p>
+                    <p id="kpiOutputTokens" class="text-2xl font-bold text-emerald-600 mt-1">0</p>
+                    <p id="kpiOutputChars" class="text-xs text-slate-500 mt-1">0 caracteres gerados</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <p class="text-xs uppercase font-semibold text-slate-400">Sessões & Mensagens</p>
+                    <p id="kpiSessions" class="text-2xl font-bold text-slate-800 mt-1">0 clientes</p>
+                    <p id="kpiMessages" class="text-xs text-slate-500 mt-1">0 mensagens trocadas</p>
+                </div>
+            </div>
+
+            <!-- Gráfico Diário + Tabela por Nó -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800">Consumo Diário de Tokens (Input vs Output)</h3>
+                        <p class="text-xs text-slate-500 mb-3">Histórico agrupado por dia (proxy de 3,8 caracteres/token).</p>
+                    </div>
+                    <div class="relative h-64 w-full">
+                        <canvas id="dailyTokensChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                    <div class="px-5 py-3.5 bg-slate-100 border-b border-slate-200 font-semibold text-sm">
+                        Detalhamento Acumulado por Nó da Máquina de Estados
+                    </div>
+                    <div class="overflow-x-auto flex-1">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase border-b">
+                                <tr>
+                                    <th class="py-2.5 px-4">Nó Executado</th>
+                                    <th class="py-2.5 px-4">Tipo</th>
+                                    <th class="py-2.5 px-4">Execuções</th>
+                                    <th class="py-2.5 px-4">Tokens (÷ 3,8)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nodeBreakdownBody" class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Topologia do Fluxo de Agentes -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+            <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-100 pb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">2. Topologia do Fluxo de Agentes (FSM)</h2>
+                    <p class="text-xs text-slate-500">Visualização gráfica das conexões e inspeção detalhada de cada nó configurado em <code class="bg-slate-100 px-1 rounded">build_graph()</code>.</p>
+                </div>
+                <div class="flex gap-2 text-xs">
+                    <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">⚡ Determinístico / Buffer</span>
+                    <span class="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium">🤖 Agente / Roteador LLM</span>
+                    <span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-medium">⚖️ Juiz Avaliador LLM</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <!-- Coluna Esquerda: Fluxograma Visual SVG -->
+                <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center min-h-[360px]">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 self-start">Diagrama do Fluxo</p>
+                    <div id="mermaidContainer" class="w-full flex justify-center overflow-x-auto py-2"></div>
+                </div>
+
+                <!-- Coluna Direita: Pipeline Interativo de Cartões dos Nós -->
+                <div class="lg:col-span-7 space-y-4">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Arquitetura Detalhada dos Nós & Transições</p>
+                    <div id="topologyCardsContainer" class="space-y-4"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Ferramentas (AppTools) & Base RAG -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <h2 class="text-lg font-bold text-slate-800 mb-3">3. Ferramentas do Tenant (Function Calling)</h2>
+                <div id="toolsList" class="space-y-3"></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <h2 class="text-lg font-bold text-slate-800 mb-3">Base de Conhecimento (RAG & FileSearchStore)</h2>
+                <div id="ragInfoBox" class="space-y-3"></div>
+            </div>
+        </section>
+
+        <!-- 4. Visualizador de Bancos de Dados do Tenant -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <div class="mb-4">
+                <h2 class="text-lg font-bold text-slate-800">4. Bancos de Dados Relacionados ao Tenant</h2>
+                <p class="text-xs text-slate-500">Inspeção em tempo real das tabelas globais filtradas e dos bancos SQLite exclusivos do Tenant.</p>
+            </div>
+            <div id="databasesContainer" class="space-y-6"></div>
+        </section>
+    </main>
+
+    <script>
+        const selectEl = document.getElementById('tenantSelect');
+        let dailyChartInstance = null;
+
+        async function loadTenants() {
+            const resp = await fetch('/api/v1/dashboard/tenants');
+            const tenants = await resp.json();
+            selectEl.innerHTML = tenants.map(t =>
+                `<option value="${t.tenant_id}">${t.name} (${t.tenant_id})</option>`
+            ).join('');
+            selectEl.addEventListener('change', () => loadTenantDetails(selectEl.value));
+            if (tenants.length > 0) {
+                await loadTenantDetails(tenants[0].tenant_id);
+            }
+        }
+
+        async function reloadCurrentTenant() {
+            if (selectEl.value) {
+                await loadTenantDetails(selectEl.value);
+            }
+        }
+
+        function renderDailyTokensChart(dailyUsage) {
+            const ctx = document.getElementById('dailyTokensChart').getContext('2d');
+            if (dailyChartInstance) {
+                dailyChartInstance.destroy();
+            }
+
+            const labels = dailyUsage.length ? dailyUsage.map(d => d.date) : ['Sem registos'];
+            const inputData = dailyUsage.length ? dailyUsage.map(d => d.input_tokens) : [0];
+            const outputData = dailyUsage.length ? dailyUsage.map(d => d.output_tokens) : [0];
+
+            dailyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Tokens de Entrada (Input)',
+                            data: inputData,
+                            backgroundColor: '#4f46e5',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Tokens de Saída (Output)',
+                            data: outputData,
+                            backgroundColor: '#10b981',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: { display: true, text: 'Tokens Estimados (÷ 3,8)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: function(context) {
+                                    const idx = context[0].dataIndex;
+                                    if (!dailyUsage[idx]) return '';
+                                    const d = dailyUsage[idx];
+                                    return `Total no dia: ${d.total_tokens} tk\nCaracteres: ${d.input_chars + d.output_chars}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Renderizador seguro de Mermaid: valida e gera SVG sem poluir a tela com erros
+        async function renderMermaidDiagram(mermaidCode, nodes) {
+            const mermaidBox = document.getElementById('mermaidContainer');
+            mermaidBox.innerHTML = '';
+
+            try {
+                const uniqueId = 'mermaid_svg_' + Math.random().toString(36).substring(2, 9);
+                const { svg } = await mermaid.render(uniqueId, mermaidCode);
+                mermaidBox.innerHTML = svg;
+            } catch (err) {
+                console.warn('Usando renderizador nativo HTML para o fluxograma:', err);
+                // Fallback Visual Nativo em HTML/CSS caso o Mermaid encontre qualquer restrição no browser
+                mermaidBox.innerHTML = `
+                    <div class="flex flex-col items-center space-y-2 w-full py-2">
+                        <div class="px-4 py-1.5 rounded-full bg-slate-800 text-white text-xs font-bold shadow">📱 Início WhatsApp</div>
+                        <div class="text-slate-400 font-bold">↓</div>
+                        ${nodes.map(n => `
+                            <div class="w-4/5 p-3 rounded-lg border-2 ${n.node_type === 'LLM' ? 'border-indigo-500 bg-indigo-50' : 'border-emerald-500 bg-emerald-50'} text-center shadow-sm">
+                                <p class="font-mono font-bold text-xs text-slate-900">${n.id}</p>
+                                <p class="text-[11px] text-slate-600">${n.role_label}</p>
+                            </div>
+                            <div class="text-slate-400 font-bold">↓</div>
+                        `).join('')}
+                        <div class="px-4 py-1.5 rounded-full bg-slate-800 text-white text-xs font-bold shadow">✅ Fim do Atendimento</div>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadTenantDetails(tenantId) {
+            const resp = await fetch(`/api/v1/dashboard/tenants/${tenantId}?db_limit=50`);
+            const data = await resp.json();
+
+            // 1. Atualiza KPIs de Tokens
+            const tk = data.tokens_telemetry;
+            document.getElementById('proxyBadge').textContent = `Regra: ${tk.proxy_rule}`;
+            document.getElementById('kpiTotalTokens').textContent = tk.estimated_tokens.total.toLocaleString('pt-BR');
+            document.getElementById('kpiTotalChars').textContent = `${tk.characters.total.toLocaleString('pt-BR')} caracteres totais`;
+            document.getElementById('kpiInputTokens').textContent = tk.estimated_tokens.input.toLocaleString('pt-BR');
+            document.getElementById('kpiInputChars').textContent = `${tk.characters.input.toLocaleString('pt-BR')} chars entrada`;
+            document.getElementById('kpiOutputTokens').textContent = tk.estimated_tokens.output.toLocaleString('pt-BR');
+            document.getElementById('kpiOutputChars').textContent = `${tk.characters.output.toLocaleString('pt-BR')} chars saída`;
+            document.getElementById('kpiSessions').textContent = `${tk.unique_sessions} cliente(s)`;
+            document.getElementById('kpiMessages').textContent = `${tk.messages_count.total} mensagens (${tk.messages_count.user} usr / ${tk.messages_count.assistant} IA)`;
+
+            // Renderiza Gráfico Diário de Tokens
+            renderDailyTokensChart(tk.daily_usage || []);
+
+            // Tabela de nós executados
+            const tbody = document.getElementById('nodeBreakdownBody');
+            if (!tk.node_breakdown || tk.node_breakdown.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-400 text-xs">Nenhuma execução granular registada em <code>node_telemetry</code> ainda. Envie uma mensagem no Mock para popular!</td></tr>`;
+            } else {
+                tbody.innerHTML = tk.node_breakdown.map(n => `
+                    <tr class="hover:bg-slate-50">
+                        <td class="py-2.5 px-4 font-mono text-xs font-semibold">${n.node_name}</td>
+                        <td class="py-2.5 px-4">
+                            <span class="px-2 py-0.5 text-xs rounded font-semibold ${n.node_type === 'LLM' ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'}">
+                                ${n.node_type}
+                            </span>
+                        </td>
+                        <td class="py-2.5 px-4">${n.executions}x</td>
+                        <td class="py-2.5 px-4 font-bold text-indigo-600">${n.total_tokens} tk <span class="text-xs font-normal text-slate-400">(${n.estimated_input_tokens} in / ${n.estimated_output_tokens} out)</span></td>
+                    </tr>
+                `).join('');
+            }
+
+            // 2. Renderiza Topologia: Diagrama SVG + Cartões de Arquitetura
+            await renderMermaidDiagram(data.topology.mermaid_diagram, data.topology.nodes);
+
+            const cardsContainer = document.getElementById('topologyCardsContainer');
+            cardsContainer.innerHTML = data.topology.nodes.map(node => {
+                const isJudge = node.class_name.includes('Judge');
+                const isLLM = node.node_type === 'LLM';
+                const borderColor = isJudge ? 'border-l-amber-500' : (isLLM ? 'border-l-indigo-600' : 'border-l-emerald-500');
+                const badgeClass = isJudge ? 'bg-amber-100 text-amber-800' : (isLLM ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800');
+
+                const edgesHtml = (node.outgoing_edges || []).map(edge => `
+                    <div class="flex items-start gap-2 text-xs bg-white p-2 rounded border border-slate-200">
+                        <span class="font-semibold text-indigo-600 shrink-0">➔ ${edge.to}</span>
+                        <span class="text-slate-500"><strong>(${edge.label}):</strong> ${edge.description}</span>
+                    </div>
+                `).join('');
+
+                return `
+                    <div class="p-4 rounded-xl border border-slate-200 border-l-4 ${borderColor} bg-slate-50/70 shadow-sm space-y-2.5">
+                        <div class="flex flex-wrap justify-between items-center gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-slate-800 text-white text-xs font-bold flex items-center justify-center">${node.step_order}</span>
+                                <span class="font-bold text-slate-900 font-mono text-sm">${node.id}</span>
+                                <span class="text-xs text-slate-500">(${node.class_name})</span>
+                            </div>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeClass}">
+                                ${node.role_label}
+                            </span>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            ${node.tools.length
+                                ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded">🛠️ Tools: <strong>${node.tools.join(', ')}</strong></span>`
+                                : `<span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded">🔒 Sem acesso a Tools (Isolamento SRP)</span>`
+                            }
+                            ${node.uses_rag
+                                ? `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-medium">📚 RAG FileSearch Ativo</span>`
+                                : ''
+                            }
+                        </div>
+
+                        <div class="space-y-1">
+                            <p class="text-[11px] font-semibold uppercase text-slate-400">Transições de Saída:</p>
+                            <div class="grid grid-cols-1 gap-1.5">${edgesHtml}</div>
+                        </div>
+
+                        ${node.system_instruction ? `
+                            <details class="text-xs pt-1">
+                                <summary class="cursor-pointer text-indigo-600 font-semibold hover:underline">Inspecionar Prompt / Regras Internas do Nó</summary>
+                                <pre class="mt-2 p-3 bg-slate-900 text-slate-100 rounded-lg whitespace-pre-wrap text-[11px] leading-relaxed">${node.system_instruction}</pre>
+                            </details>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            // 3. Renderiza Ferramentas e RAG
+            const toolsEl = document.getElementById('toolsList');
+            const tools = data.capabilities.tools;
+            toolsEl.innerHTML = tools.length ? tools.map(t => `
+                <div class="p-3.5 border border-slate-200 rounded-lg bg-slate-50 space-y-1.5">
+                    <div class="flex justify-between items-center">
+                        <span class="font-mono font-bold text-sm text-indigo-700">${t.name}()</span>
+                        <span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">${t.is_async ? 'Async Coroutine' : 'Sync Thread'}</span>
+                    </div>
+                    <p class="text-xs text-slate-600">${t.description}</p>
+                    <p class="text-xs text-slate-500"><strong>Nós com permissão:</strong> ${t.attached_nodes.join(', ') || 'Global'}</p>
+                    <details class="text-xs">
+                        <summary class="cursor-pointer text-indigo-600 font-medium">Ver JSON Schema de Parâmetros</summary>
+                        <pre class="mt-1 p-2 bg-slate-900 text-slate-100 rounded overflow-x-auto text-[11px]">${JSON.stringify(t.parameters, null, 2)}</pre>
+                    </details>
+                </div>
+            `).join('') : '<p class="text-sm text-slate-400">Nenhuma ferramenta cadastrada.</p>';
+
+            const rag = data.capabilities.rag;
+            const ragEl = document.getElementById('ragInfoBox');
+            ragEl.innerHTML = `
+                <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2 text-xs">
+                    <p><strong>Status RAG:</strong> <span class="${rag.enabled ? 'text-emerald-600 font-bold' : 'text-slate-500'}">${rag.enabled ? 'Ativo' : 'Inativo'}</span></p>
+                    <p><strong>Gemini FileSearchStore ID:</strong> <code class="bg-slate-200 px-1.5 py-0.5 rounded">${rag.file_search_store_id}</code></p>
+                    <p><strong>Diretório Local:</strong> <code class="bg-slate-200 px-1.5 py-0.5 rounded">${rag.documents_directory}</code></p>
+                </div>
+                <div class="space-y-2">
+                    <p class="text-xs font-semibold uppercase text-slate-400">Documentos Locais Indexáveis (${rag.documents.length})</p>
+                    ${rag.documents.length ? rag.documents.map(doc => `
+                        <div class="flex justify-between items-center p-2.5 border border-slate-200 rounded-lg text-xs">
+                            <span class="font-medium text-slate-700">📄 ${doc.file_name}</span>
+                            <span class="text-slate-500">${doc.size_kb} KB (~${doc.estimated_tokens} tokens)</span>
+                        </div>
+                    `).join('') : '<p class="text-xs text-slate-400">Nenhum ficheiro encontrado no diretório do tenant.</p>'}
+                </div>
+            `;
+
+            // 4. Renderiza os Bancos de Dados e Tabelas
+            const dbContainer = document.getElementById('databasesContainer');
+            dbContainer.innerHTML = data.databases.map(db => `
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <div class="bg-slate-800 text-white px-4 py-2.5 flex justify-between items-center text-sm">
+                        <span class="font-bold">🗄️ ${db.database_name}</span>
+                        <code class="text-xs text-slate-300 bg-slate-700 px-2 py-0.5 rounded">${db.db_path}</code>
+                    </div>
+                    <div class="p-4 space-y-4 bg-slate-50">
+                        ${db.tables.map(tbl => `
+                            <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                                <div class="px-4 py-2 bg-slate-100 border-b border-slate-200 flex justify-between items-center text-xs font-bold text-slate-700">
+                                    <span>Tabela: <code class="text-indigo-600">${tbl.table_name}</code></span>
+                                    <span>Total de Registos: ${tbl.total_records}</span>
+                                </div>
+                                <div class="overflow-x-auto max-h-64">
+                                    ${tbl.rows.length > 0 ? `
+                                        <table class="w-full text-left text-xs">
+                                            <thead class="bg-slate-50 border-b text-slate-500 uppercase">
+                                                <tr>${tbl.columns.map(c => `<th class="py-2 px-3">${c}</th>`).join('')}</tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-100">
+                                                ${tbl.rows.map(row => `
+                                                    <tr class="hover:bg-slate-50">
+                                                        ${tbl.columns.map(c => `<td class="py-2 px-3 font-mono text-[11px] max-w-xs truncate" title="${String(row[c] ?? '')}">${String(row[c] ?? '')}</td>`).join('')}
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    ` : `<p class="p-4 text-xs text-slate-400">Tabela sem registos para este tenant no momento. Colunas: ${tbl.columns.join(', ') || 'N/A'}</p>`}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        loadTenants();
+    </script>
+</body>
+</html>

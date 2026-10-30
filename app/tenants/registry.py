@@ -1,58 +1,48 @@
 # app/tenants/registry.py
+import asyncio
 import os
-from typing import Dict, Optional
+from typing import Dict, List, Optional
+from app.core.logger import logger
+from app.services.rag_service import RAGService
 from app.tenants.base import BaseTenant
-from app.tenants.clinica import ClinicaTenant
-from app.tenants.padaria import PadariaTenant
-from app.services.rag_service import rag_service
+
 
 class TenantRegistry:
-    """
-    Catálogo central de todas as empresas cadastradas na plataforma.
-    """
-    def __init__(self) -> None:
+    """Catálogo central de empresas com inicialização assíncrona paralela de RAG."""
+
+    def __init__(self, rag_service: Optional[RAGService] = None) -> None:
         self._tenants: Dict[str, BaseTenant] = {}
-        self._carregar_tenants_iniciais()
-
-    def _carregar_tenants_iniciais(self) -> None:
-        """Apenas instancia e registra as classes de tenant."""
-        try:
-            self.register_tenant(ClinicaTenant())
-            self.register_tenant(PadariaTenant())
-        except Exception as error:
-            print(f"[ERRO REGISTRY] Falha ao registrar tenants iniciais: {error}")
-
-    def inicializar_todos_os_rags(self) -> None:
-        """
-        Executa a indexação dos documentos de cada tenant.
-        Chamado de forma controlada durante o startup do servidor.
-        """
-        for tenant_id, tenant in self._tenants.items():
-            caminho_documentos = os.path.join("data", "tenants", tenant_id)
-            if os.path.exists(caminho_documentos):
-                store_name = rag_service.upload_tenant_documents(
-                    tenant_id=tenant_id,
-                    documents_dir=caminho_documentos
-                )
-                if store_name:
-                    tenant._file_search_store_id = store_name
+        self._rag_service = rag_service
 
     def register_tenant(self, tenant: BaseTenant) -> None:
-        """Registra um tenant no catálogo."""
         self._tenants[tenant.tenant_id] = tenant
-        print(f"[REGISTRY] Tenant registrado com sucesso: {tenant.name} ({tenant.tenant_id})")
+        logger.info(f"[REGISTRY] Tenant registrado: {tenant.name} ({tenant.tenant_id})")
 
     def get_tenant(self, tenant_id: str) -> Optional[BaseTenant]:
-        """Busca um tenant pelo seu identificador com tratamento defensivo."""
-        try:
-            tenant = self._tenants.get(tenant_id)
-            if not tenant:
-                raise ValueError(f"Tenant '{tenant_id}' não encontrado no sistema.")
-        except Exception as error:
-            print(f"[AVISO REGISTRY] {error}")
-            return None
-        else:
-            return tenant
+        tenant = self._tenants.get(tenant_id)
+        if not tenant:
+            logger.warning(f"[REGISTRY] Tenant '{tenant_id}' não encontrado.")
+        return tenant
 
-# Instância global leve
-tenant_registry = TenantRegistry()
+    def list_tenants(self) -> List[BaseTenant]:
+        """Retorna a lista de todos os tenants registados na plataforma."""
+        return list(self._tenants.values())
+
+    async def _init_single_tenant_rag(self, tenant_id: str, tenant: BaseTenant) -> None:
+        if not self._rag_service:
+            return
+        caminho_documentos = os.path.join("data", "tenants", tenant_id)
+        if os.path.exists(caminho_documentos):
+            store_name = await self._rag_service.upload_tenant_documents_async(
+                tenant_id=tenant_id,
+                documents_dir=caminho_documentos,
+            )
+            if store_name:
+                tenant.file_search_store_id = store_name
+
+    async def inicializar_todos_os_rags_async(self) -> None:
+        if not self._rag_service:
+            return
+        await asyncio.gather(
+            *(self._init_single_tenant_rag(t_id, tenant) for t_id, tenant in self._tenants.items())
+        )

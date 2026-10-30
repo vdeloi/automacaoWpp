@@ -1,0 +1,19 @@
+{
+    "timestamp": "2026-10-18T13:53:12.390523",
+    "tempo_total_segundos": 14.314,
+    "tokens": {
+        "input": 0,
+        "output": 0,
+        "total": 0
+    },
+    "ferramentas_utilizadas": [
+        "consultar_horarios_disponiveis"
+    ],
+    "rag_utilizado": false,
+    "pergunta_usuario": "Gostaria de marcar uma consulta com o doutor joão",
+    "resposta_agente": "Perfeito! O Dr. João tem disponibilidade no dia 25/10/2023. Como a agenda dele está livre nesse dia, você pode escolher o melhor horário no período comercial (por exemplo: 09:00, 10:00, 14:00, 15:00, etc.).\n\nQual horário você prefere e qual é o seu **nome completo**?",
+    "avaliacao_alucinacao": {
+        "alucinou": true,
+        "justificativa": "O agente inventou uma disponibilidade específica (25/10/2023) e horários sem ter acesso a um sistema de agendamento real ou contexto prévio."
+    }
+}

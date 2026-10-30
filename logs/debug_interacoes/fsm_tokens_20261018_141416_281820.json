@@ -1,0 +1,45 @@
+{
+    "timestamp": "2026-10-18T14:14:16.281820",
+    "tenant_id": "padaria_01",
+    "phone_number": "16988704341",
+    "tempo_total_segundos": 10.696,
+    "pergunta_usuario": "Gostaria de saber qual o prato do dia de hoje",
+    "resposta_final": "O prato do dia de hoje é um saboroso contra filé com farofa, saindo por 15.90 R$. Dá uma água na boca, né? Quer aproveitar e pedir um para você?",
+    "rascunho_interno_blackboard": {
+        "last_tools_called": [],
+        "tools_called": []
+    },
+    "telemetria_tokens": {
+        "regra_aproximacao": "1 token = 4 caracteres",
+        "nos_executados": {
+            "total": 2,
+            "agentes_llm": 2,
+            "nos_deterministicos_python": 0
+        },
+        "tokens_estimados_totais": {
+            "input": 229,
+            "output": 42,
+            "total_geral": 271
+        },
+        "detalhamento_por_no": [
+            {
+                "node_name": "TurnPredictorNode",
+                "node_type": "LLM",
+                "input_chars": 45,
+                "output_chars": 22,
+                "estimated_input_tokens": 12,
+                "estimated_output_tokens": 6,
+                "total_estimated_tokens": 18
+            },
+            {
+                "node_name": "PadariaBalcaoNode",
+                "node_type": "LLM",
+                "input_chars": 865,
+                "output_chars": 144,
+                "estimated_input_tokens": 217,
+                "estimated_output_tokens": 36,
+                "total_estimated_tokens": 253
+            }
+        ]
+    }
+}

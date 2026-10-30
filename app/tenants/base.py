@@ -1,12 +1,15 @@
 # app/tenants/base.py
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
-from app.tools.base_tool import AppTool
+from typing import Dict, List, Optional, Tuple
+from app.domain.interfaces import AppTool, IGraphNode
+
 
 class BaseTenant(ABC):
-    """
-    Classe Abstrata que define o contrato obrigatório para cada empresa.
-    """
+    """Contrato base para qualquer empresa (Tenant) cadastrada na plataforma."""
+
+    def __init__(self) -> None:
+        self._file_search_store_id: Optional[str] = None
+
     @property
     @abstractmethod
     def tenant_id(self) -> str:
@@ -24,33 +27,23 @@ class BaseTenant(ABC):
 
     @property
     def file_search_store_id(self) -> Optional[str]:
-        """Identificador da FileSearchStore no Gemini (opcional)."""
-        return None
+        return self._file_search_store_id
+
+    @file_search_store_id.setter
+    def file_search_store_id(self, value: Optional[str]) -> None:
+        self._file_search_store_id = value
 
     @abstractmethod
     def get_tools(self) -> List[AppTool]:
-        """Retorna a lista de objetos AppTool desta empresa."""
         pass
 
-    def get_tool_schemas(self) -> List[Dict[str, Any]]:
-        """Retorna os esquemas de funções Python ('type': 'function')."""
-        return [tool.to_gemini_schema() for tool in self.get_tools()]
-
-    def get_all_tool_schemas(self) -> List[Dict[str, Any]]:
-        """
-        Retorna a lista completa de ferramentas para a API:
-        Combina o File Search (RAG) do tenant com as funções Python locais.
-        """
-        schemas: List[Dict[str, Any]] = self.get_tool_schemas()
-        
-        if self.file_search_store_id:
-            schemas.append({
-                "type": "file_search",
-                "file_search_store_names": [self.file_search_store_id]
-            })
-            
-        return schemas
-
     def get_tool_map(self) -> Dict[str, AppTool]:
-        """Retorna um dicionário {nome_da_funcao: AppTool} para execução rápida."""
         return {tool.name: tool for tool in self.get_tools()}
+
+    @abstractmethod
+    def build_graph(self) -> Tuple[Dict[str, IGraphNode], str]:
+        """
+        Fábrica do Grafo de Atendimento do Tenant.
+        Retorna (dicionario_de_nos, nome_do_no_inicial).
+        """
+        pass

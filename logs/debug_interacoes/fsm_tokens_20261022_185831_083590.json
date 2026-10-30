@@ -1,0 +1,87 @@
+{
+    "timestamp": "2026-10-22T18:58:31.083590",
+    "tenant_id": "clinica_01",
+    "phone_number": "11999999999",
+    "tempo_total_segundos": 15.165,
+    "pergunta_usuario": "quero às 14h",
+    "resposta_final": "Carlos, infelizmente o horário das 14:00 já está ocupado. \n\nPara que eu possa verificar e realizar o seu agendamento, por favor, me informe qual outro horário você prefere e o seu **nome completo** (com sobrenome).",
+    "rascunho_interno_blackboard": {
+        "intent": "Solicitação de agendamento para um horário já ocupado",
+        "routed_to": "agente_agendamento",
+        "last_tools_called": [
+            "consultar_horarios_disponiveis"
+        ],
+        "tools_called": [
+            "consultar_horarios_disponiveis"
+        ]
+    },
+    "telemetria_tokens": {
+        "regra_aproximacao": "1 token = 4 caracteres",
+        "nos_executados": {
+            "total": 6,
+            "agentes_llm": 6,
+            "nos_deterministicos_python": 0
+        },
+        "tokens_estimados_totais": {
+            "input": 1817,
+            "output": 191,
+            "total_geral": 2008
+        },
+        "detalhamento_por_no": [
+            {
+                "node_name": "TurnPredictorNode",
+                "node_type": "LLM",
+                "input_chars": 12,
+                "output_chars": 22,
+                "estimated_input_tokens": 3,
+                "estimated_output_tokens": 6,
+                "total_estimated_tokens": 9
+            },
+            {
+                "node_name": "RouterNode",
+                "node_type": "LLM",
+                "input_chars": 1441,
+                "output_chars": 102,
+                "estimated_input_tokens": 361,
+                "estimated_output_tokens": 26,
+                "total_estimated_tokens": 387
+            },
+            {
+                "node_name": "ClinicaBookingNode",
+                "node_type": "LLM",
+                "input_chars": 1251,
+                "output_chars": 210,
+                "estimated_input_tokens": 313,
+                "estimated_output_tokens": 53,
+                "total_estimated_tokens": 366
+            },
+            {
+                "node_name": "JudgeEvaluatorNode",
+                "node_type": "LLM",
+                "input_chars": 1327,
+                "output_chars": 166,
+                "estimated_input_tokens": 332,
+                "estimated_output_tokens": 42,
+                "total_estimated_tokens": 374
+            },
+            {
+                "node_name": "ClinicaBookingNode",
+                "node_type": "LLM",
+                "input_chars": 1833,
+                "output_chars": 214,
+                "estimated_input_tokens": 459,
+                "estimated_output_tokens": 54,
+                "total_estimated_tokens": 513
+            },
+            {
+                "node_name": "JudgeEvaluatorNode",
+                "node_type": "LLM",
+                "input_chars": 1395,
+                "output_chars": 39,
+                "estimated_input_tokens": 349,
+                "estimated_output_tokens": 10,
+                "total_estimated_tokens": 359
+            }
+        ]
+    }
+}

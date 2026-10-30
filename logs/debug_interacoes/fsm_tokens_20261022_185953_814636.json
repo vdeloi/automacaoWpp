@@ -1,0 +1,69 @@
+{
+    "timestamp": "2026-10-22T18:59:53.814636",
+    "tenant_id": "clinica_01",
+    "phone_number": "11999999999",
+    "tempo_total_segundos": 11.453,
+    "pergunta_usuario": "Que tal às 9h00, meu nome é Carlos Antonio Zapelini",
+    "resposta_final": "Perfeito, Carlos Antonio Zapelini! Sua consulta com a Dra. Fanny foi agendada com sucesso para o dia 23/10/2026 às 09:00. \n\nA Clínica Odontológica Sorriso agradece o seu contato e esperamos você amanhã! Há mais alguma coisa em que eu possa ajudar?",
+    "rascunho_interno_blackboard": {
+        "intent": "Paciente forneceu um novo horário e seu nome completo para prosseguir com o agendamento.",
+        "routed_to": "agente_agendamento",
+        "last_tools_called": [
+            "registrar_agendamento"
+        ],
+        "tools_called": [
+            "registrar_agendamento"
+        ]
+    },
+    "telemetria_tokens": {
+        "regra_aproximacao": "1 token = 4 caracteres",
+        "nos_executados": {
+            "total": 4,
+            "agentes_llm": 4,
+            "nos_deterministicos_python": 0
+        },
+        "tokens_estimados_totais": {
+            "input": 1066,
+            "output": 113,
+            "total_geral": 1179
+        },
+        "detalhamento_por_no": [
+            {
+                "node_name": "TurnPredictorNode",
+                "node_type": "LLM",
+                "input_chars": 51,
+                "output_chars": 22,
+                "estimated_input_tokens": 13,
+                "estimated_output_tokens": 6,
+                "total_estimated_tokens": 19
+            },
+            {
+                "node_name": "RouterNode",
+                "node_type": "LLM",
+                "input_chars": 1467,
+                "output_chars": 143,
+                "estimated_input_tokens": 367,
+                "estimated_output_tokens": 36,
+                "total_estimated_tokens": 403
+            },
+            {
+                "node_name": "ClinicaBookingNode",
+                "node_type": "LLM",
+                "input_chars": 1290,
+                "output_chars": 247,
+                "estimated_input_tokens": 323,
+                "estimated_output_tokens": 62,
+                "total_estimated_tokens": 385
+            },
+            {
+                "node_name": "JudgeEvaluatorNode",
+                "node_type": "LLM",
+                "input_chars": 1449,
+                "output_chars": 33,
+                "estimated_input_tokens": 363,
+                "estimated_output_tokens": 9,
+                "total_estimated_tokens": 372
+            }
+        ]
+    }
+}

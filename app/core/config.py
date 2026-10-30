@@ -1,4 +1,5 @@
 # app/core/config.py
+from typing import Optional
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,11 +26,40 @@ class Settings(BaseSettings):
     )
     environment: str = Field(
         default="development",
+        alias="ENVIRONMENT",
         description="Ambiente de execução (development, production)."
     )
     port: int = Field(
         default=8000,
+        alias="PORT",
         description="Porta de execução do servidor FastAPI."
+    )
+    enable_debug_logs: bool = Field(
+        default=False,
+        alias="ENABLE_DEBUG_LOGS",
+        description="Se True, gera arquivos de log detalhados com métricas e avaliação de alucinação."
+    )
+
+    # --- Configurações de Persistência e Mensageria (Injeção de Dependência) ---
+    sessions_db_path: str = Field(
+        default="data/app_sessions.db",
+        alias="SESSIONS_DB_PATH",
+        description="Caminho do arquivo SQLite para armazenamento de histórico e sessões de chat."
+    )
+    clinica_db_path: str = Field(
+        default="data/tenants/clinica_01/clinica.db",
+        alias="CLINICA_DB_PATH",
+        description="Caminho do arquivo SQLite exclusivo para agendamentos da clínica."
+    )
+    whatsapp_api_url: Optional[str] = Field(
+        default=None,
+        alias="WHATSAPP_API_URL",
+        description="URL base da API de WhatsApp (ex: Evolution API). Se vazio, utiliza o Mock Gateway."
+    )
+    whatsapp_api_key: Optional[str] = Field(
+        default=None,
+        alias="WHATSAPP_API_KEY",
+        description="Chave de autenticação da API de WhatsApp externa."
     )
 
     model_config = SettingsConfigDict(

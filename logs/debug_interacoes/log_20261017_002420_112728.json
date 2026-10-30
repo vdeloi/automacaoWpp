@@ -1,0 +1,17 @@
+{
+    "timestamp": "2026-10-17T00:24:19.435017",
+    "tempo_total_segundos": 4.163,
+    "tokens": {
+        "input": 0,
+        "output": 0,
+        "total": 0
+    },
+    "ferramentas_utilizadas": [],
+    "rag_utilizado": true,
+    "pergunta_usuario": "oii",
+    "resposta_agente": "Oii! Tudo bem por aí? Seja muito bem-vindo à Padaria Pão Quente! Como eu posso te ajudar hoje?",
+    "avaliacao_alucinacao": {
+        "alucinou": false,
+        "justificativa": "A resposta do agente é uma saudação educada e contextualizada, comum em atendimentos virtuais, sem conter informações factuais incorretas ou alucinações."
+    }
+}
