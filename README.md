@@ -425,7 +425,11 @@ Para transformar este protótipo de alta fidelidade em um produto em produção 
 
 - [x] **Arquitetura Assíncrona e Resiliente:** Eliminação de gargalos no Event Loop e conexão persistente no SQLite.
 - [x] **Nós com Circuit Breaker:** Blindagem contra loops infinitos de auditoria de qualidade.
+- [ ] Integração com o API do Whatsapp Business
+- [ ] Plataforma para os tenants adicionarem ferramentas, documentos e informações
+- [ ] Engenharia de prompt
 - [ ] **Handover Humano em Tempo Real:** Adicionar um gatilho de pausa (`human_takeover: bool`) para que atendentes humanos assumam conversas pelo WhatsApp quando o nó `END_HANDOFF` for disparado.
 - [ ] **Empacotamento com Docker & Docker Compose:** Criar um ambiente autocontido reunindo a API FastAPI, a Evolution API v2 e um servidor Redis para o gateway de mensageria.
 - [ ] **Suporte a Áudio (Whisper / Gemini Multimodal):** Adicionar um pré-processador no endpoint de webhook para transcrever mensagens de voz antes da ingestão pelo grafo.
 - [ ] **Políticas de Retenção LGPD:** Implementar rotinas automáticas de expiração e anonimização de dados pessoais sensíveis nas tabelas de mensagens e telemetria.
+- [ ] Hospedar no AWS
