@@ -292,8 +292,8 @@ Edite o arquivo `.env` com suas credenciais:
 GEMINI_API_KEY=AIzaSySuA_ChAvE_AqUi_Do_GoOgLe
 
 # Modelos recomendados (Otimizados para velocidade e custo)
-MODEL_NAME=gemini-2.5-flash
-CLASSIFIER_MODEL_NAME=gemini-2.5-flash
+MODEL_NAME=gemini-3.5-flash-lite
+CLASSIFIER_MODEL_NAME=gemini-3.5-flash-lite
 
 # Ambiente e Porta
 ENVIRONMENT=development
